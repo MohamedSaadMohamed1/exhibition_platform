@@ -228,18 +228,19 @@ class SearchService {
           .map((doc) => SupplierModel.fromFirestore(doc))
           .where((supplier) {
             // Client-side text search
-            final nameMatch = supplier.businessName.toLowerCase().contains(query);
-            final descMatch = supplier.description?.toLowerCase().contains(query) ?? false;
+            final nameMatch = supplier.name.toLowerCase().contains(query);
+            final descMatch = supplier.description.toLowerCase().contains(query);
             final categoryMatch =
-                supplier.categories.any((c) => c.toLowerCase().contains(query));
+                supplier.category?.toLowerCase().contains(query) ?? false;
+            final servicesMatch =
+                supplier.services.any((s) => s.toLowerCase().contains(query));
 
-            if (!nameMatch && !descMatch && !categoryMatch) {
+            if (!nameMatch && !descMatch && !categoryMatch && !servicesMatch) {
               return false;
             }
 
             // Apply category filter
-            if (filters?.category != null &&
-                !supplier.categories.contains(filters!.category)) {
+            if (filters?.category != null && supplier.category != filters!.category) {
               return false;
             }
 
@@ -248,8 +249,8 @@ class SearchService {
           .take(limit)
           .map((supplier) => SearchResult(
                 id: supplier.id,
-                title: supplier.businessName,
-                subtitle: supplier.categories.take(2).join(' • '),
+                title: supplier.name,
+                subtitle: supplier.category ?? supplier.services.take(2).join(' • '),
                 imageUrl: supplier.coverImage,
                 type: SearchResultType.supplier,
                 data: supplier,
@@ -270,8 +271,8 @@ class SearchService {
     try {
       Query<Map<String, dynamic>> dbQuery = _firestore
           .collection('services')
-          .where('isAvailable', isEqualTo: true)
-          .orderBy('name')
+          .where('isActive', isEqualTo: true)
+          .orderBy('title')
           .limit(limit * 2);
 
       // Apply price filters
@@ -288,11 +289,11 @@ class SearchService {
           .map((doc) => ServiceModel.fromFirestore(doc))
           .where((service) {
             // Client-side text search
-            final nameMatch = service.name.toLowerCase().contains(query);
+            final titleMatch = service.title.toLowerCase().contains(query);
             final descMatch = service.description.toLowerCase().contains(query);
             final categoryMatch = service.category.toLowerCase().contains(query);
 
-            if (!nameMatch && !descMatch && !categoryMatch) {
+            if (!titleMatch && !descMatch && !categoryMatch) {
               return false;
             }
 
@@ -309,9 +310,9 @@ class SearchService {
           .take(limit)
           .map((service) => SearchResult(
                 id: service.id,
-                title: service.name,
-                subtitle: '\$${service.price.toStringAsFixed(2)} / ${service.priceUnit}',
-                imageUrl: service.images.isNotEmpty ? service.images.first : null,
+                title: service.title,
+                subtitle: service.formattedPrice,
+                imageUrl: service.primaryImage,
                 type: SearchResultType.service,
                 data: service,
               ))

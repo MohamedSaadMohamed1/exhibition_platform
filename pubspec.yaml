@@ -47,6 +47,10 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.0.3
   connectivity_plus: ^6.0.5
+  crypto: ^3.0.3
+  path: ^1.9.0
+  image: ^4.2.0
+  flutter_local_notifications: ^17.2.2
 
   # Local Storage
   shared_preferences: ^2.3.2
@@ -61,6 +65,7 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   flutter_lints: ^4.0.0
   mockito: ^5.4.4
+  mocktail: ^1.0.4
   riverpod_lint: ^2.3.13
 
 flutter:

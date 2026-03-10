@@ -83,4 +83,20 @@ class UploadException extends AppException {
     super.code = 'UPLOAD_ERROR',
     super.originalException,
   });
+
+  /// Factory for file too large error
+  factory UploadException.fileTooLarge() {
+    return const UploadException(
+      message: 'File size exceeds maximum allowed limit',
+      code: 'FILE_TOO_LARGE',
+    );
+  }
+
+  /// Factory for invalid file type error
+  factory UploadException.invalidFileType() {
+    return const UploadException(
+      message: 'Invalid file type',
+      code: 'INVALID_FILE_TYPE',
+    );
+  }
 }

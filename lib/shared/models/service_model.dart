@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'user_model.dart';
+import '../../core/constants/json_converters.dart';
 
 part 'service_model.freezed.dart';
 part 'service_model.g.dart';

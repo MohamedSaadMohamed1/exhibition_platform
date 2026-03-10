@@ -6,6 +6,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import '../../data/datasources/remote/firebase_messaging_datasource.dart';
 import '../providers/firebase_providers.dart';
+import '../providers/providers.dart';
 
 /// Notification service for managing FCM notifications
 class NotificationService {

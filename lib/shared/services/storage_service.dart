@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/error/exceptions.dart';
-import '../../core/error/failures.dart';
 import '../../core/utils/logger.dart';
 import '../../data/datasources/remote/firebase_storage_datasource.dart';
 import '../providers/firebase_providers.dart';

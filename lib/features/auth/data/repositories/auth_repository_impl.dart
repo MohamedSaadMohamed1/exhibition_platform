@@ -1,0 +1,247 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dartz/dartz.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/enums.dart';
+import '../../../../core/exceptions/app_exceptions.dart';
+import '../../../../shared/models/user_model.dart';
+import '../../domain/repositories/auth_repository.dart';
+
+/// Implementation of AuthRepository using Firebase
+class AuthRepositoryImpl implements AuthRepository {
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
+
+  AuthRepositoryImpl({
+    required FirebaseAuth auth,
+    required FirebaseFirestore firestore,
+  })  : _auth = auth,
+        _firestore = firestore;
+
+  CollectionReference<Map<String, dynamic>> get _usersCollection =>
+      _firestore.collection(FirestoreCollections.users);
+
+  @override
+  Future<Either<Failure, String>> sendOtp({
+    required String phoneNumber,
+    required String countryCode,
+  }) async {
+    try {
+      final completer = Completer<Either<Failure, String>>();
+
+      await _auth.verifyPhoneNumber(
+        phoneNumber: '$countryCode$phoneNumber',
+        timeout: AppConstants.otpTimeout,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification (Android only)
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (e.code == 'invalid-phone-number') {
+            completer.complete(Left(AuthFailure.invalidPhoneNumber()));
+          } else if (e.code == 'too-many-requests') {
+            completer.complete(Left(AuthFailure.tooManyRequests()));
+          } else {
+            completer.complete(Left(AuthFailure.unknown(e.message)));
+          }
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          completer.complete(Right(verificationId));
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          // Timeout handling
+        },
+      );
+
+      return await completer.future;
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserModel>> verifyOtp({
+    required String verificationId,
+    required String otp,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otp,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user == null) {
+        return Left(AuthFailure.unknown('User not found after sign in'));
+      }
+
+      // Check if user document exists
+      final userDoc = await _usersCollection.doc(user.uid).get();
+
+      if (userDoc.exists) {
+        // Existing user - return user data
+        return Right(UserModel.fromFirestore(userDoc));
+      } else {
+        // New user (Visitor) - create document
+        final newUser = UserModel(
+          id: user.uid,
+          name: '',
+          phone: user.phoneNumber ?? '',
+          role: UserRole.visitor, // Self-registered users are visitors
+          createdBy: 'self',
+          createdAt: DateTime.now(),
+        );
+
+        await _usersCollection.doc(user.uid).set(newUser.toFirestore());
+
+        return Right(newUser);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-verification-code') {
+        return Left(AuthFailure.invalidOtp());
+      } else if (e.code == 'session-expired') {
+        return Left(AuthFailure.otpExpired());
+      }
+      return Left(AuthFailure.unknown(e.message));
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserModel?>> getCurrentUser() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return const Right(null);
+      }
+
+      final userDoc = await _usersCollection.doc(user.uid).get();
+      if (!userDoc.exists) {
+        return const Right(null);
+      }
+
+      return Right(UserModel.fromFirestore(userDoc));
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserModel>> getUserById(String userId) async {
+    try {
+      final userDoc = await _usersCollection.doc(userId).get();
+
+      if (!userDoc.exists) {
+        return Left(FirestoreFailure.notFound('User'));
+      }
+
+      return Right(UserModel.fromFirestore(userDoc));
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserModel>> createUserDocument({
+    required String uid,
+    required String phone,
+    String? name,
+  }) async {
+    try {
+      final newUser = UserModel(
+        id: uid,
+        name: name ?? '',
+        phone: phone,
+        role: UserRole.visitor,
+        createdBy: 'self',
+        createdAt: DateTime.now(),
+      );
+
+      await _usersCollection.doc(uid).set(newUser.toFirestore());
+
+      return Right(newUser);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserModel>> updateUserProfile({
+    required String userId,
+    String? name,
+    String? profileImage,
+    String? email,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (name != null) updates['name'] = name;
+      if (profileImage != null) updates['profileImage'] = profileImage;
+      if (email != null) updates['email'] = email;
+
+      await _usersCollection.doc(userId).update(updates);
+
+      final updatedDoc = await _usersCollection.doc(userId).get();
+      return Right(UserModel.fromFirestore(updatedDoc));
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateFcmToken({
+    required String userId,
+    required String token,
+  }) async {
+    try {
+      await _usersCollection.doc(userId).update({
+        'fcmToken': token,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return const Right(null);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> signOut() async {
+    try {
+      await _auth.signOut();
+      return const Right(null);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Stream<UserModel?> authStateChanges() {
+    return _auth.authStateChanges().asyncMap((user) async {
+      if (user == null) return null;
+
+      final userDoc = await _usersCollection.doc(user.uid).get();
+      if (!userDoc.exists) return null;
+
+      return UserModel.fromFirestore(userDoc);
+    });
+  }
+
+  @override
+  Future<Either<Failure, bool>> checkPhoneExists(String phoneNumber) async {
+    try {
+      final query = await _usersCollection
+          .where('phone', isEqualTo: phoneNumber)
+          .limit(1)
+          .get();
+
+      return Right(query.docs.isNotEmpty);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+}

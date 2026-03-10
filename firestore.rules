@@ -1,0 +1,288 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================
+    // HELPER FUNCTIONS
+    // ========================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Get current user ID
+    function currentUserId() {
+      return request.auth.uid;
+    }
+
+    // Get user document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(currentUserId())).data;
+    }
+
+    // Check user role
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    // Check if user is admin
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // Check if user is organizer
+    function isOrganizer() {
+      return hasRole('organizer');
+    }
+
+    // Check if user is supplier
+    function isSupplier() {
+      return hasRole('supplier');
+    }
+
+    // Check if user is exhibitor
+    function isExhibitor() {
+      return hasRole('exhibitor');
+    }
+
+    // Check if user is active
+    function isActiveUser() {
+      return getUserData().isActive == true;
+    }
+
+    // ========================
+    // USERS COLLECTION
+    // ========================
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+
+      // Users can create their own document on first login (exhibitor only)
+      allow create: if isAuthenticated()
+        && currentUserId() == userId
+        && request.resource.data.role == 'exhibitor'
+        && request.resource.data.createdBy == 'self';
+
+      // Admin can create organizer and supplier accounts
+      allow create: if isAdmin()
+        && request.resource.data.role in ['organizer', 'supplier']
+        && request.resource.data.createdBy == currentUserId();
+
+      // Users can update their own profile (except role)
+      allow update: if isAuthenticated()
+        && currentUserId() == userId
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'createdBy', 'createdAt']));
+
+      // Admin can update any user
+      allow update: if isAdmin();
+
+      // Only admin can delete users
+      allow delete: if isAdmin();
+    }
+
+    // ========================
+    // EVENTS COLLECTION
+    // ========================
+    match /events/{eventId} {
+      // Anyone authenticated can read published events
+      allow read: if isAuthenticated()
+        && (resource.data.status == 'published' || resource.data.organizerId == currentUserId() || isAdmin());
+
+      // Admin and organizers can create events
+      allow create: if isAuthenticated()
+        && (isAdmin() || isOrganizer())
+        && request.resource.data.organizerId == currentUserId();
+
+      // Organizers can only update/delete their own events
+      allow update: if isAuthenticated()
+        && (resource.data.organizerId == currentUserId() || isAdmin());
+
+      allow delete: if isAuthenticated()
+        && (resource.data.organizerId == currentUserId() || isAdmin());
+
+      // ========================
+      // BOOTHS SUBCOLLECTION
+      // ========================
+      match /booths/{boothId} {
+        // Anyone authenticated can read booths
+        allow read: if isAuthenticated();
+
+        // Only event organizer can create/update/delete booths
+        allow create, update, delete: if isAuthenticated()
+          && (get(/databases/$(database)/documents/events/$(eventId)).data.organizerId == currentUserId() || isAdmin());
+      }
+    }
+
+    // ========================
+    // BOOKING REQUESTS COLLECTION
+    // ========================
+    match /bookingRequests/{requestId} {
+      // Exhibitors can read their own requests
+      // Organizers can read requests for their events
+      allow read: if isAuthenticated()
+        && (resource.data.exhibitorId == currentUserId()
+            || resource.data.organizerId == currentUserId()
+            || isAdmin());
+
+      // Only exhibitors can create booking requests
+      allow create: if isAuthenticated()
+        && isExhibitor()
+        && request.resource.data.exhibitorId == currentUserId()
+        && request.resource.data.status == 'pending';
+
+      // Organizers can approve/reject bookings for their events
+      // Exhibitors can cancel their own pending bookings
+      allow update: if isAuthenticated()
+        && (
+          // Organizer updating status
+          (resource.data.organizerId == currentUserId()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['status', 'rejectionReason', 'approvedAt', 'rejectedAt', 'confirmedAt', 'updatedAt']))
+          ||
+          // Exhibitor cancelling
+          (resource.data.exhibitorId == currentUserId()
+            && resource.data.status in ['pending', 'approved']
+            && request.resource.data.status == 'cancelled')
+          ||
+          // Admin
+          isAdmin()
+        );
+
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+
+    // ========================
+    // CHATS COLLECTION
+    // ========================
+    match /chats/{chatId} {
+      // Only participants can read/write
+      allow read, write: if isAuthenticated()
+        && currentUserId() in resource.data.participants;
+
+      // Allow create if user is one of the participants
+      allow create: if isAuthenticated()
+        && currentUserId() in request.resource.data.participants;
+
+      // ========================
+      // MESSAGES SUBCOLLECTION
+      // ========================
+      match /messages/{messageId} {
+        // Only chat participants can read messages
+        allow read: if isAuthenticated()
+          && currentUserId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+
+        // Only chat participants can send messages
+        allow create: if isAuthenticated()
+          && currentUserId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+          && request.resource.data.senderId == currentUserId();
+
+        // Allow updating read status
+        allow update: if isAuthenticated()
+          && currentUserId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'readAt']);
+      }
+    }
+
+    // ========================
+    // SUPPLIERS COLLECTION
+    // ========================
+    match /suppliers/{supplierId} {
+      // Anyone authenticated can read active suppliers
+      allow read: if isAuthenticated()
+        && (resource.data.isActive == true || resource.data.ownerId == currentUserId() || isAdmin());
+
+      // Only admin can create suppliers
+      allow create: if isAdmin();
+
+      // Supplier owner can update their own profile
+      allow update: if isAuthenticated()
+        && (resource.data.ownerId == currentUserId() || isAdmin())
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerId', 'createdByAdmin', 'createdAt']));
+
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+
+    // ========================
+    // EVENT JOBS COLLECTION
+    // ========================
+    match /eventJobs/{jobId} {
+      // Anyone authenticated can read open jobs
+      allow read: if isAuthenticated();
+
+      // Only organizers can create jobs for their events
+      allow create: if isAuthenticated()
+        && (isOrganizer() || isAdmin())
+        && request.resource.data.organizerId == currentUserId();
+
+      // Only job creator can update
+      allow update: if isAuthenticated()
+        && (resource.data.organizerId == currentUserId() || isAdmin());
+
+      // Only admin or job creator can delete
+      allow delete: if isAuthenticated()
+        && (resource.data.organizerId == currentUserId() || isAdmin());
+    }
+
+    // ========================
+    // JOB APPLICATIONS COLLECTION
+    // ========================
+    match /jobApplications/{applicationId} {
+      // Applicants can read their own applications
+      // Job creators can read applications for their jobs
+      allow read: if isAuthenticated()
+        && (resource.data.userId == currentUserId()
+            || isAdmin()
+            || exists(/databases/$(database)/documents/eventJobs/$(resource.data.jobId))
+                && get(/databases/$(database)/documents/eventJobs/$(resource.data.jobId)).data.organizerId == currentUserId());
+
+      // Users can create applications
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == currentUserId()
+        && request.resource.data.status == 'pending';
+
+      // Job creators can update application status
+      allow update: if isAuthenticated()
+        && (isAdmin()
+            || (exists(/databases/$(database)/documents/eventJobs/$(resource.data.jobId))
+                && get(/databases/$(database)/documents/eventJobs/$(resource.data.jobId)).data.organizerId == currentUserId()
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'feedback', 'reviewedAt', 'updatedAt'])));
+
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+
+    // ========================
+    // INTERESTS COLLECTION
+    // ========================
+    match /interests/{interestId} {
+      // Users can read/write their own interests
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == currentUserId();
+
+      allow delete: if isAuthenticated()
+        && resource.data.userId == currentUserId();
+    }
+
+    // ========================
+    // NOTIFICATIONS COLLECTION (if needed)
+    // ========================
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == currentUserId();
+
+      allow create: if false; // Only Cloud Functions can create
+
+      allow update: if isAuthenticated()
+        && resource.data.userId == currentUserId()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+
+      allow delete: if isAuthenticated()
+        && resource.data.userId == currentUserId();
+    }
+  }
+}

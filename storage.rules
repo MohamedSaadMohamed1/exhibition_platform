@@ -1,0 +1,104 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to get current user ID
+    function currentUserId() {
+      return request.auth.uid;
+    }
+
+    // Helper function to check file size (max 5MB)
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Helper function to check if file is an image
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Helper function to check if file is a PDF
+    function isPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    // ========================
+    // PROFILE IMAGES
+    // ========================
+    match /profile_images/{userId}/{fileName} {
+      // Anyone can read profile images
+      allow read: if true;
+
+      // Users can only upload/update/delete their own profile images
+      allow write: if isAuthenticated()
+        && currentUserId() == userId
+        && isImage()
+        && isValidSize();
+    }
+
+    // ========================
+    // EVENT IMAGES
+    // ========================
+    match /event_images/{eventId}/{fileName} {
+      // Anyone can read event images
+      allow read: if true;
+
+      // Only event organizer or admin can upload
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize();
+    }
+
+    // ========================
+    // SUPPLIER IMAGES
+    // ========================
+    match /supplier_images/{supplierId}/{fileName} {
+      // Anyone can read supplier images
+      allow read: if true;
+
+      // Supplier owner or admin can upload
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize();
+    }
+
+    // ========================
+    // CHAT MEDIA
+    // ========================
+    match /chat_media/{chatId}/{fileName} {
+      // Only chat participants can read/write
+      allow read: if isAuthenticated();
+
+      allow write: if isAuthenticated()
+        && (isImage() || isPdf())
+        && isValidSize();
+    }
+
+    // ========================
+    // RESUMES
+    // ========================
+    match /resumes/{userId}/{fileName} {
+      // User can read their own resumes
+      // Organizers can read resumes of applicants
+      allow read: if isAuthenticated();
+
+      // Users can only upload their own resumes
+      allow write: if isAuthenticated()
+        && currentUserId() == userId
+        && isPdf()
+        && request.resource.size < 10 * 1024 * 1024; // 10MB for PDFs
+    }
+
+    // ========================
+    // DEFAULT DENY
+    // ========================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -5,7 +5,6 @@ import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/extensions/date_extensions.dart';
 import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
-import '../../data/repositories/chat_repository_impl.dart';
 
 // Provider for messages stream
 final messagesProvider = StreamProvider.family<List<MessageModel>, String>((ref, chatId) {

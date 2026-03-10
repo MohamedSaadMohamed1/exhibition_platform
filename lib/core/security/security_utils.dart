@@ -138,7 +138,7 @@ class SecurityUtils {
   static String sanitizeInput(String input) {
     return input
         .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
-        .replaceAll(RegExp(r'[<>"\']'), '') // Remove special chars
+        .replaceAll(RegExp(r"[<>\"']"), '') // Remove special chars
         .trim();
   }
 

@@ -90,7 +90,7 @@ class InputValidator {
     if (value.trim().length > maxLength) {
       return 'Name must be less than $maxLength characters';
     }
-    if (!RegExp(r'^[a-zA-Z\s\-\']+$').hasMatch(value.trim())) {
+    if (!RegExp(r"^[a-zA-Z\s\-']+$").hasMatch(value.trim())) {
       return 'Name can only contain letters, spaces, hyphens and apostrophes';
     }
     return null;

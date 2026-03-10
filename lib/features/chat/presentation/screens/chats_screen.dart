@@ -8,7 +8,6 @@ import '../../../../core/extensions/date_extensions.dart';
 import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../router/routes.dart';
-import '../../data/repositories/chat_repository_impl.dart';
 
 // Provider for user chats
 final userChatsProvider = StreamProvider<List<ChatModel>>((ref) {

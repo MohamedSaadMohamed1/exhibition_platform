@@ -122,9 +122,26 @@ class SupplierModel {
   /// Get cover image
   String? get coverImage => images.isNotEmpty ? images.first : null;
 
+  /// Alias for backward compatibility with UI screens
+  String get businessName => name;
+  List<String> get categories => services;
+  int get reviewsCount => reviewCount;
+  String? get profileImage => coverImage;
+  int get ordersCount => 0; // TODO: Add ordersCount field to model
+  String get userId => ownerId;
+
   /// Check if supplier has contact info
   bool get hasContactInfo =>
       contactEmail != null || contactPhone != null || website != null;
+
+  /// Get update map for Firestore
+  Map<String, dynamic> toUpdateMap() {
+    final json = toJson();
+    json.remove('id');
+    json.remove('createdAt');
+    json['updatedAt'] = FieldValue.serverTimestamp();
+    return json;
+  }
 
   SupplierModel copyWith({
     String? id,
@@ -255,6 +272,7 @@ enum SupplierSortBy {
   rating,
   name,
   reviewCount,
+  ordersCount,
   createdAt,
 }
 

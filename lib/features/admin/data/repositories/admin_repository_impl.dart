@@ -248,6 +248,7 @@ class AdminRepositoryImpl implements AdminRepository {
       int totalOrganizers = 0;
       int totalSuppliers = 0;
       int totalExhibitors = 0;
+      int totalVisitors = 0;
       int activeUsers = 0;
       int inactiveUsers = 0;
 
@@ -260,6 +261,10 @@ class AdminRepositoryImpl implements AdminRepository {
           case UserRole.admin:
             totalAdmins++;
             break;
+          case UserRole.owner:
+            // Owners are counted as admins for stats purposes
+            totalAdmins++;
+            break;
           case UserRole.organizer:
             totalOrganizers++;
             break;
@@ -268,6 +273,9 @@ class AdminRepositoryImpl implements AdminRepository {
             break;
           case UserRole.exhibitor:
             totalExhibitors++;
+            break;
+          case UserRole.visitor:
+            totalVisitors++;
             break;
         }
 
@@ -284,6 +292,7 @@ class AdminRepositoryImpl implements AdminRepository {
         totalOrganizers: totalOrganizers,
         totalSuppliers: totalSuppliers,
         totalExhibitors: totalExhibitors,
+        totalVisitors: totalVisitors,
         activeUsers: activeUsers,
         inactiveUsers: inactiveUsers,
       ));

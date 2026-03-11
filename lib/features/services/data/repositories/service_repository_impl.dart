@@ -85,7 +85,7 @@ class ServiceRepositoryImpl implements ServiceRepository {
       final doc = await _servicesCollection.doc(serviceId).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('Service not found'));
+        return Left(NotFoundFailure.withMessage('Service not found'));
       }
 
       return Right(ServiceModel.fromFirestore(doc));

@@ -62,6 +62,12 @@ class ServiceModel with _$ServiceModel {
   String get primaryImage =>
       images.isNotEmpty ? images.first : 'https://via.placeholder.com/300';
 
+  /// Alias for backward compatibility with UI screens
+  String get name => title;
+  bool get isFeatured => false; // TODO: Add isFeatured field to model
+  bool get isAvailable => isActive;
+  List<String> get features => tags;
+
   /// Get formatted price
   String get formattedPrice {
     if (price == null) return 'Contact for price';

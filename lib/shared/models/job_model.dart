@@ -184,14 +184,6 @@ class JobFilter with _$JobFilter {
   }
 }
 
-/// Job sort options
-enum JobSortBy {
-  deadline,
-  createdAt,
-  title,
-  applicationsCount,
-}
-
 /// Job types
 abstract class JobTypes {
   static const String fullTime = 'Full-time';

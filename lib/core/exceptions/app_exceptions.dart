@@ -154,6 +154,12 @@ class ValidationFailure extends Failure {
     super.code,
   });
 
+  /// Convenience factory with positional message
+  factory ValidationFailure.withMessage(String message) => ValidationFailure(
+        message: message,
+        code: 'validation-error',
+      );
+
   factory ValidationFailure.emptyField(String fieldName) => ValidationFailure(
         message: '$fieldName cannot be empty',
         code: 'empty-field',
@@ -168,6 +174,33 @@ class ValidationFailure extends Failure {
       ValidationFailure(
         message: '$fieldName cannot exceed $maxLength characters',
         code: 'too-long',
+      );
+}
+
+/// Not found failure
+class NotFoundFailure extends Failure {
+  const NotFoundFailure({
+    super.message = 'The requested resource was not found',
+    super.code = 'not-found',
+  });
+
+  /// Convenience factory with positional message
+  factory NotFoundFailure.withMessage(String message) => NotFoundFailure(
+        message: message,
+      );
+}
+
+/// Server failure
+class ServerFailure extends Failure {
+  const ServerFailure({
+    required super.message,
+    super.code = 'server-error',
+    super.originalError,
+  });
+
+  /// Convenience factory with positional message
+  factory ServerFailure.withMessage(String message) => ServerFailure(
+        message: message,
       );
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/enums.dart';
 import '../../../../shared/models/booth_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../domain/repositories/booth_repository.dart';
@@ -56,7 +57,7 @@ class EventBoothsNotifier extends FamilyNotifier<BoothsState, String> {
       booths: refresh ? [] : state.booths,
     );
 
-    final result = await _boothRepository.getEventBooths(
+    final result = await _boothRepository.getBoothsByEvent(
       eventId,
       filter: state.filter,
     );
@@ -99,31 +100,34 @@ final eventBoothsProvider =
   return EventBoothsNotifier();
 });
 
-/// Single booth provider
-final boothProvider = FutureProvider.family<BoothModel?, String>((ref, boothId) async {
+/// Single booth provider - requires (eventId, boothId) tuple
+final boothProvider = FutureProvider.family<BoothModel?, ({String eventId, String boothId})>((ref, params) async {
   final repository = ref.watch(boothRepositoryProvider);
-  final result = await repository.getBoothById(boothId);
+  final result = await repository.getBoothById(params.eventId, params.boothId);
   return result.fold((l) => null, (r) => r);
 });
 
-/// Booth stream provider
-final boothStreamProvider = StreamProvider.family<BoothModel, String>((ref, boothId) {
+/// Booth stream provider - requires (eventId, boothId) tuple
+final boothStreamProvider = StreamProvider.family<BoothModel, ({String eventId, String boothId})>((ref, params) {
   final repository = ref.watch(boothRepositoryProvider);
-  return repository.watchBooth(boothId);
+  return repository.watchBooth(params.eventId, params.boothId);
 });
 
 /// Event booths stream provider
 final eventBoothsStreamProvider =
     StreamProvider.family<List<BoothModel>, String>((ref, eventId) {
   final repository = ref.watch(boothRepositoryProvider);
-  return repository.watchEventBooths(eventId);
+  return repository.watchBooths(eventId);
 });
 
-/// Available booths provider
+/// Available booths provider - gets booths filtered by available status
 final availableBoothsProvider =
     FutureProvider.family<List<BoothModel>, String>((ref, eventId) async {
   final repository = ref.watch(boothRepositoryProvider);
-  final result = await repository.getAvailableBooths(eventId);
+  final result = await repository.getBoothsByEvent(
+    eventId,
+    filter: const BoothFilter(status: BoothStatus.available),
+  );
   return result.fold((l) => [], (r) => r);
 });
 
@@ -131,7 +135,7 @@ final availableBoothsProvider =
 final boothMapProvider =
     FutureProvider.family<Map<String, BoothModel>, String>((ref, eventId) async {
   final repository = ref.watch(boothRepositoryProvider);
-  final result = await repository.getEventBooths(eventId);
+  final result = await repository.getBoothsByEvent(eventId);
   return result.fold(
     (l) => {},
     (booths) => {for (final booth in booths) booth.id: booth},

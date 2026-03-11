@@ -53,6 +53,9 @@ class JobRepositoryImpl implements JobRepository {
         case JobSortBy.deadline:
           query = query.orderBy('deadline', descending: !ascending);
           break;
+        case JobSortBy.salary:
+          query = query.orderBy('salary', descending: !ascending);
+          break;
         case JobSortBy.createdAt:
           query = query.orderBy('createdAt', descending: !ascending);
           break;
@@ -87,7 +90,7 @@ class JobRepositoryImpl implements JobRepository {
       final doc = await _jobsCollection.doc(jobId).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('Job not found'));
+        return Left(NotFoundFailure.withMessage('Job not found'));
       }
 
       return Right(JobModel.fromFirestore(doc));
@@ -265,7 +268,7 @@ class JobRepositoryImpl implements JobRepository {
       // Check if already applied
       final existingResult = await hasUserApplied(jobId: jobId, userId: userId);
       if (existingResult.isRight() && existingResult.getOrElse(() => false)) {
-        return Left(ValidationFailure('You have already applied for this job'));
+        return Left(ValidationFailure.withMessage('You have already applied for this job'));
       }
 
       final applicationId = _uuid.v4();
@@ -320,7 +323,7 @@ class JobRepositoryImpl implements JobRepository {
         }
       }
 
-      return Left(NotFoundFailure('Application not found'));
+      return Left(NotFoundFailure.withMessage('Application not found'));
     } catch (e) {
       return Left(e.toFailure());
     }
@@ -410,7 +413,7 @@ class JobRepositoryImpl implements JobRepository {
         }
       }
 
-      return Left(NotFoundFailure('Application not found'));
+      return Left(NotFoundFailure.withMessage('Application not found'));
     } catch (e) {
       return Left(e.toFailure());
     }
@@ -455,7 +458,7 @@ class JobRepositoryImpl implements JobRepository {
         }
       }
 
-      return Left(NotFoundFailure('Application not found'));
+      return Left(NotFoundFailure.withMessage('Application not found'));
     } catch (e) {
       return Left(e.toFailure());
     }

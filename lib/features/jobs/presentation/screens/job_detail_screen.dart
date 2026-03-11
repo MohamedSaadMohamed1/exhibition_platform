@@ -45,7 +45,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
         return _JobDetailContent(
           job: job,
           hasApplied: _hasApplied,
-          currentUserId: currentUser?.uid,
+          currentUserId: currentUser?.id,
           onApply: () => _showApplicationSheet(context, job),
         );
       },

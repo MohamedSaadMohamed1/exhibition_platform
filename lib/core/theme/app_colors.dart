@@ -79,6 +79,7 @@ abstract class AppColors {
   static const Color ownerColor = Color(0xFFF59E0B);
   static const Color organizerColor = Color(0xFF8B5CF6);
   static const Color supplierColor = Color(0xFF10B981);
+  static const Color exhibitorColor = Color(0xFF06B6D4);
   static const Color visitorColor = Color(0xFF3B82F6);
 
   // Status Colors

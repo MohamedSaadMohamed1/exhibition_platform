@@ -107,6 +107,8 @@ enum JobSortBy {
   deadline,
   salary,
   createdAt,
+  title,
+  applicationsCount,
 }
 
 /// Event status

@@ -287,7 +287,7 @@ class _ServiceDetailContent extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '\$${service.price.toStringAsFixed(2)}',
+                                  '\$${service.price?.toStringAsFixed(2) ?? '0.00'}',
                                   style: const TextStyle(
                                     color: AppColors.primary,
                                     fontSize: 28,
@@ -588,7 +588,7 @@ class _ServiceDetailContent extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '\$${service.price.toStringAsFixed(2)} / ${service.priceUnit}',
+                            '\$${service.price?.toStringAsFixed(2) ?? '0.00'} / ${service.priceUnit ?? 'unit'}',
                             style: const TextStyle(
                               color: AppColors.primary,
                             ),
@@ -680,8 +680,8 @@ class _ReviewCard extends StatelessWidget {
                     : null,
                 child: review.userAvatar == null
                     ? Text(
-                        review.userName.isNotEmpty
-                            ? review.userName[0].toUpperCase()
+                        (review.userName?.isNotEmpty ?? false)
+                            ? review.userName![0].toUpperCase()
                             : 'U',
                         style: const TextStyle(color: AppColors.textPrimaryDark),
                       )
@@ -693,7 +693,7 @@ class _ReviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      review.userName,
+                      review.userName ?? 'Anonymous',
                       style: const TextStyle(
                         color: AppColors.textPrimaryDark,
                         fontWeight: FontWeight.w600,

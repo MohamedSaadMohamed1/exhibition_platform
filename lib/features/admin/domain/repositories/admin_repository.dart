@@ -69,6 +69,7 @@ class UserStats {
   final int totalOrganizers;
   final int totalSuppliers;
   final int totalExhibitors;
+  final int totalVisitors;
   final int activeUsers;
   final int inactiveUsers;
 
@@ -78,6 +79,7 @@ class UserStats {
     required this.totalOrganizers,
     required this.totalSuppliers,
     required this.totalExhibitors,
+    required this.totalVisitors,
     required this.activeUsers,
     required this.inactiveUsers,
   });

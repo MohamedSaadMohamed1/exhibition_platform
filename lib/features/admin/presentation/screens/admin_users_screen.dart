@@ -154,12 +154,16 @@ class _UserCard extends StatelessWidget {
     switch (user.role) {
       case UserRole.admin:
         return AppColors.adminColor;
+      case UserRole.owner:
+        return AppColors.ownerColor;
       case UserRole.organizer:
         return AppColors.organizerColor;
       case UserRole.supplier:
         return AppColors.supplierColor;
       case UserRole.exhibitor:
         return AppColors.exhibitorColor;
+      case UserRole.visitor:
+        return AppColors.visitorColor;
     }
   }
 

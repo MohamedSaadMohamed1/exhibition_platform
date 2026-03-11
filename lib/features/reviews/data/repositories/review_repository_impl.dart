@@ -27,7 +27,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
         targetId: review.targetId,
       );
       if (existingResult.isRight() && existingResult.getOrElse(() => false)) {
-        return Left(ValidationFailure('You have already reviewed this'));
+        return Left(ValidationFailure.withMessage('You have already reviewed this'));
       }
 
       final docRef = _reviewsCollection.doc();
@@ -50,7 +50,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
       final doc = await _reviewsCollection.doc(reviewId).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('Review not found'));
+        return Left(NotFoundFailure.withMessage('Review not found'));
       }
 
       return Right(ReviewModel.fromFirestore(doc));
@@ -78,7 +78,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
     try {
       final doc = await _reviewsCollection.doc(reviewId).get();
       if (!doc.exists) {
-        return Left(NotFoundFailure('Review not found'));
+        return Left(NotFoundFailure.withMessage('Review not found'));
       }
 
       final review = ReviewModel.fromFirestore(doc);

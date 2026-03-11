@@ -486,7 +486,7 @@ class _SupplierCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          supplier.businessName,
+                          supplier.name,
                           style: const TextStyle(
                             color: AppColors.textPrimaryDark,
                             fontSize: 16,
@@ -505,9 +505,9 @@ class _SupplierCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  if (supplier.categories.isNotEmpty)
+                  if (supplier.services.isNotEmpty)
                     Text(
-                      supplier.categories.take(2).join(' • '),
+                      supplier.services.take(2).join(' • '),
                       style: const TextStyle(
                         color: AppColors.textSecondaryDark,
                         fontSize: 13,
@@ -526,7 +526,7 @@ class _SupplierCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        ' (${supplier.reviewsCount})',
+                        ' (${supplier.reviewCount})',
                         style: const TextStyle(
                           color: AppColors.textSecondaryDark,
                           fontSize: 12,

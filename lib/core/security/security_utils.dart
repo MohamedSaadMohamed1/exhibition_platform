@@ -138,16 +138,16 @@ class SecurityUtils {
   static String sanitizeInput(String input) {
     return input
         .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
-        .replaceAll(RegExp(r"[<>\"']"), '') // Remove special chars
+        .replaceAll(RegExp('[<>"\']'), '') // Remove special chars
         .trim();
   }
 
   /// Check for SQL injection patterns
   static bool containsSqlInjection(String input) {
     final patterns = [
-      RegExp(r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE)\b)", caseSensitive: false),
-      RegExp(r"(--|;|'|\"|\/\*|\*\/)", caseSensitive: false),
-      RegExp(r"(\bOR\b|\bAND\b)\s*\d+\s*=\s*\d+", caseSensitive: false),
+      RegExp(r'(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE)\b)', caseSensitive: false),
+      RegExp('(--|;|\'|"|/\\*|\\*/)', caseSensitive: false),
+      RegExp(r'(\bOR\b|\bAND\b)\s*\d+\s*=\s*\d+', caseSensitive: false),
     ];
 
     return patterns.any((pattern) => pattern.hasMatch(input));

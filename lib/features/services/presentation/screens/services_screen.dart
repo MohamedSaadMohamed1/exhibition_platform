@@ -227,7 +227,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               onTap: () {
                 Navigator.pop(context);
                 ref.read(servicesNotifierProvider.notifier).applyFilter(
-                      const ServiceFilter(sortBy: 'price_asc'),
+                      const ServiceFilter(sortBy: ServiceSortBy.price, ascending: true),
                     );
               },
             ),
@@ -237,7 +237,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               onTap: () {
                 Navigator.pop(context);
                 ref.read(servicesNotifierProvider.notifier).applyFilter(
-                      const ServiceFilter(sortBy: 'price_desc'),
+                      const ServiceFilter(sortBy: ServiceSortBy.price, ascending: false),
                     );
               },
             ),
@@ -247,7 +247,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               onTap: () {
                 Navigator.pop(context);
                 ref.read(servicesNotifierProvider.notifier).applyFilter(
-                      const ServiceFilter(sortBy: 'rating'),
+                      const ServiceFilter(sortBy: ServiceSortBy.rating, ascending: false),
                     );
               },
             ),
@@ -257,7 +257,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               onTap: () {
                 Navigator.pop(context);
                 ref.read(servicesNotifierProvider.notifier).applyFilter(
-                      const ServiceFilter(sortBy: 'popular'),
+                      const ServiceFilter(sortBy: ServiceSortBy.ordersCount, ascending: false),
                     );
               },
             ),
@@ -470,7 +470,7 @@ class _ServiceCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '\$${service.price.toStringAsFixed(2)}',
+                        '\$${service.price?.toStringAsFixed(2) ?? '0.00'}',
                         style: const TextStyle(
                           color: AppColors.primary,
                           fontSize: 18,
@@ -478,7 +478,7 @@ class _ServiceCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        ' / ${service.priceUnit}',
+                        ' / ${service.priceUnit ?? 'unit'}',
                         style: const TextStyle(
                           color: AppColors.textSecondaryDark,
                           fontSize: 14,

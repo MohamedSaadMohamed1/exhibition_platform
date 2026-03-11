@@ -272,6 +272,7 @@ final userStatsProvider = FutureProvider<UserStats>((ref) async {
       totalOrganizers: 0,
       totalSuppliers: 0,
       totalExhibitors: 0,
+      totalVisitors: 0,
       activeUsers: 0,
       inactiveUsers: 0,
     ),

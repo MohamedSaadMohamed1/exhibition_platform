@@ -28,7 +28,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
       final doc = await _usersCollection.doc(userId).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('User profile not found'));
+        return Left(NotFoundFailure.withMessage('User profile not found'));
       }
 
       return Right(UserModel.fromFirestore(doc));
@@ -151,11 +151,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   Failure _handleException(dynamic e) {
     if (e is FirebaseException) {
-      return ServerFailure(e.message ?? 'Firebase error occurred');
+      return ServerFailure.withMessage(e.message ?? 'Firebase error occurred');
     }
     if (e is UploadException) {
-      return ServerFailure(e.message);
+      return ServerFailure.withMessage(e.message);
     }
-    return ServerFailure('An unexpected error occurred');
+    return ServerFailure.withMessage('An unexpected error occurred');
   }
 }

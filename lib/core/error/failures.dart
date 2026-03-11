@@ -30,6 +30,11 @@ class ServerFailure extends Failure {
       originalError: exception,
     );
   }
+
+  /// Convenience factory with positional message
+  factory ServerFailure.withMessage(String message) {
+    return ServerFailure(message: message);
+  }
 }
 
 /// Network failure - connectivity issues
@@ -125,6 +130,11 @@ class NotFoundFailure extends Failure {
     super.message = 'The requested resource was not found.',
     super.code = 'NOT_FOUND',
   });
+
+  /// Convenience factory for custom message
+  factory NotFoundFailure.withMessage(String message) {
+    return NotFoundFailure(message: message);
+  }
 }
 
 /// Upload failure - file upload errors

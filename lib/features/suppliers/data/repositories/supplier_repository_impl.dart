@@ -37,7 +37,7 @@ class SupplierRepositoryImpl implements SupplierRepository {
         if (filter.minRating != null) {
           query = query.where('rating', isGreaterThanOrEqualTo: filter.minRating);
         }
-        if (filter.isVerified == true) {
+        if (filter.showOnlyVerified) {
           query = query.where('isVerified', isEqualTo: true);
         }
       }
@@ -49,6 +49,9 @@ class SupplierRepositoryImpl implements SupplierRepository {
       switch (sortBy) {
         case SupplierSortBy.rating:
           query = query.orderBy('rating', descending: !ascending);
+          break;
+        case SupplierSortBy.reviewCount:
+          query = query.orderBy('reviewsCount', descending: !ascending);
           break;
         case SupplierSortBy.ordersCount:
           query = query.orderBy('ordersCount', descending: !ascending);
@@ -86,7 +89,7 @@ class SupplierRepositoryImpl implements SupplierRepository {
       final doc = await _suppliersCollection.doc(supplierId).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('Supplier not found'));
+        return Left(NotFoundFailure.withMessage('Supplier not found'));
       }
 
       return Right(SupplierModel.fromFirestore(doc));

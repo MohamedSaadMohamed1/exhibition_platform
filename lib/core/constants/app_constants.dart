@@ -36,6 +36,7 @@ abstract class FirestoreCollections {
   static const String exhibitions = 'exhibitions'; // Alias for events
   static const String booths = 'booths';
   static const String bookings = 'bookings';
+  static const String bookingRequests = 'booking_requests';
   static const String suppliers = 'suppliers';
   static const String services = 'services';
   static const String orders = 'orders';
@@ -46,6 +47,7 @@ abstract class FirestoreCollections {
   static const String messages = 'messages';
   static const String reviews = 'reviews';
   static const String notifications = 'notifications';
+  static const String interests = 'interests';
   static const String interestedUsers = 'interested_users';
   static const String appConfig = 'app_config';
 }

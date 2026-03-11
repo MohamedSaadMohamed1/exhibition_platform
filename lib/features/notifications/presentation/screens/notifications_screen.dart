@@ -36,7 +36,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         _scrollController.position.maxScrollExtent - 200) {
       final currentUser = ref.read(currentUserProvider).value;
       if (currentUser != null) {
-        ref.read(notificationsNotifierProvider(currentUser.uid).notifier).loadMore();
+        ref.read(notificationsNotifierProvider(currentUser.id).notifier).loadMore();
       }
     }
   }
@@ -57,7 +57,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       );
     }
 
-    final notificationsState = ref.watch(notificationsNotifierProvider(currentUser.uid));
+    final notificationsState = ref.watch(notificationsNotifierProvider(currentUser.id));
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldDark,
@@ -77,7 +77,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             ),
             onPressed: () {
               setState(() => _showUnreadOnly = !_showUnreadOnly);
-              ref.read(notificationsNotifierProvider(currentUser.uid).notifier)
+              ref.read(notificationsNotifierProvider(currentUser.id).notifier)
                   .applyFilter(NotificationFilter(unreadOnly: _showUnreadOnly));
             },
           ),
@@ -88,14 +88,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             onSelected: (value) {
               switch (value) {
                 case 'mark_all_read':
-                  ref.read(notificationsNotifierProvider(currentUser.uid).notifier)
+                  ref.read(notificationsNotifierProvider(currentUser.id).notifier)
                       .markAllAsRead();
                   break;
                 case 'delete_all':
-                  _showDeleteAllConfirmation(currentUser.uid);
+                  _showDeleteAllConfirmation(currentUser.id);
                   break;
                 case 'settings':
-                  _showNotificationSettings(currentUser.uid);
+                  _showNotificationSettings(currentUser.id);
                   break;
               }
             },
@@ -134,7 +134,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ],
       ),
-      body: _buildBody(notificationsState, currentUser.uid),
+      body: _buildBody(notificationsState, currentUser.id),
     );
   }
 

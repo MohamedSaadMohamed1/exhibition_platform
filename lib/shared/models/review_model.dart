@@ -65,6 +65,10 @@ class ReviewModel with _$ReviewModel {
   /// Check if review has images
   bool get hasImages => images.isNotEmpty;
 
+  /// Alias for backward compatibility with UI screens
+  String? get userAvatar => reviewerImage;
+  String? get userName => reviewerName;
+
   /// Check if review has supplier response
   bool get hasSupplierResponse =>
       supplierResponse != null && supplierResponse!.isNotEmpty;

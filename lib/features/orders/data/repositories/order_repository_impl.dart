@@ -35,7 +35,7 @@ class OrderRepositoryImpl implements OrderRepository {
       final doc = await _ordersCollection.doc(orderId).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('Order not found'));
+        return Left(NotFoundFailure.withMessage('Order not found'));
       }
 
       return Right(OrderModel.fromFirestore(doc));
@@ -141,12 +141,12 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final orderDoc = await _ordersCollection.doc(orderId).get();
       if (!orderDoc.exists) {
-        return Left(NotFoundFailure('Order not found'));
+        return Left(NotFoundFailure.withMessage('Order not found'));
       }
 
       final order = OrderModel.fromFirestore(orderDoc);
       if (!order.canBeAccepted) {
-        return Left(ValidationFailure('Order cannot be accepted'));
+        return Left(ValidationFailure.withMessage('Order cannot be accepted'));
       }
 
       await _ordersCollection.doc(orderId).update({
@@ -169,12 +169,12 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final orderDoc = await _ordersCollection.doc(orderId).get();
       if (!orderDoc.exists) {
-        return Left(NotFoundFailure('Order not found'));
+        return Left(NotFoundFailure.withMessage('Order not found'));
       }
 
       final order = OrderModel.fromFirestore(orderDoc);
       if (!order.canBeAccepted) {
-        return Left(ValidationFailure('Order cannot be rejected'));
+        return Left(ValidationFailure.withMessage('Order cannot be rejected'));
       }
 
       await _ordersCollection.doc(orderId).update({
@@ -195,12 +195,12 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final orderDoc = await _ordersCollection.doc(orderId).get();
       if (!orderDoc.exists) {
-        return Left(NotFoundFailure('Order not found'));
+        return Left(NotFoundFailure.withMessage('Order not found'));
       }
 
       final order = OrderModel.fromFirestore(orderDoc);
       if (!order.canStartProgress) {
-        return Left(ValidationFailure('Order cannot start progress'));
+        return Left(ValidationFailure.withMessage('Order cannot start progress'));
       }
 
       await _ordersCollection.doc(orderId).update({
@@ -220,12 +220,12 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final orderDoc = await _ordersCollection.doc(orderId).get();
       if (!orderDoc.exists) {
-        return Left(NotFoundFailure('Order not found'));
+        return Left(NotFoundFailure.withMessage('Order not found'));
       }
 
       final order = OrderModel.fromFirestore(orderDoc);
       if (!order.canBeCompleted) {
-        return Left(ValidationFailure('Order cannot be completed'));
+        return Left(ValidationFailure.withMessage('Order cannot be completed'));
       }
 
       await _ordersCollection.doc(orderId).update({
@@ -250,12 +250,12 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final orderDoc = await _ordersCollection.doc(orderId).get();
       if (!orderDoc.exists) {
-        return Left(NotFoundFailure('Order not found'));
+        return Left(NotFoundFailure.withMessage('Order not found'));
       }
 
       final order = OrderModel.fromFirestore(orderDoc);
       if (!order.canBeCancelled) {
-        return Left(ValidationFailure('Order cannot be cancelled'));
+        return Left(ValidationFailure.withMessage('Order cannot be cancelled'));
       }
 
       await _ordersCollection.doc(orderId).update({

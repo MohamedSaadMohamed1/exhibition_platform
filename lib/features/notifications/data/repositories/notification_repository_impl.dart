@@ -58,7 +58,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return Right(notifications);
     } catch (e) {
-      return Left(ServerFailure('Failed to fetch notifications: $e'));
+      return Left(ServerFailure.withMessage('Failed to fetch notifications: $e'));
     }
   }
 
@@ -89,12 +89,12 @@ class NotificationRepositoryImpl implements NotificationRepository {
       final doc = await _notificationsRef.doc(id).get();
 
       if (!doc.exists) {
-        return Left(NotFoundFailure('Notification not found'));
+        return Left(NotFoundFailure.withMessage('Notification not found'));
       }
 
       return Right(NotificationModel.fromFirestore(doc));
     } catch (e) {
-      return Left(ServerFailure('Failed to fetch notification: $e'));
+      return Left(ServerFailure.withMessage('Failed to fetch notification: $e'));
     }
   }
 
@@ -108,7 +108,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to mark notification as read: $e'));
+      return Left(ServerFailure.withMessage('Failed to mark notification as read: $e'));
     }
   }
 
@@ -132,7 +132,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
       await batch.commit();
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to mark all notifications as read: $e'));
+      return Left(ServerFailure.withMessage('Failed to mark all notifications as read: $e'));
     }
   }
 
@@ -142,7 +142,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
       await _notificationsRef.doc(notificationId).delete();
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to delete notification: $e'));
+      return Left(ServerFailure.withMessage('Failed to delete notification: $e'));
     }
   }
 
@@ -162,7 +162,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
       await batch.commit();
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to delete all notifications: $e'));
+      return Left(ServerFailure.withMessage('Failed to delete all notifications: $e'));
     }
   }
 
@@ -177,7 +177,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return Right(snapshot.count ?? 0);
     } catch (e) {
-      return Left(ServerFailure('Failed to get unread count: $e'));
+      return Left(ServerFailure.withMessage('Failed to get unread count: $e'));
     }
   }
 
@@ -210,7 +210,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return Right(NotificationSettings.fromJson(settingsData));
     } catch (e) {
-      return Left(ServerFailure('Failed to get notification settings: $e'));
+      return Left(ServerFailure.withMessage('Failed to get notification settings: $e'));
     }
   }
 
@@ -226,7 +226,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to update notification settings: $e'));
+      return Left(ServerFailure.withMessage('Failed to update notification settings: $e'));
     }
   }
 
@@ -263,7 +263,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to send notification: $e'));
+      return Left(ServerFailure.withMessage('Failed to send notification: $e'));
     }
   }
 
@@ -302,7 +302,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
       await batch.commit();
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to send bulk notification: $e'));
+      return Left(ServerFailure.withMessage('Failed to send bulk notification: $e'));
     }
   }
 
@@ -335,7 +335,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure('Failed to send topic notification: $e'));
+      return Left(ServerFailure.withMessage('Failed to send topic notification: $e'));
     }
   }
 }

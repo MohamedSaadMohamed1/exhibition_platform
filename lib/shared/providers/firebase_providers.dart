@@ -90,8 +90,8 @@ final fcmTokenRefreshProvider = StreamProvider<String>((ref) {
   return messagingDataSource.onTokenRefresh;
 });
 
-/// Notification settings provider
-final notificationSettingsProvider =
+/// FCM notification settings provider (device-level settings)
+final fcmNotificationSettingsProvider =
     FutureProvider<NotificationSettings>((ref) async {
   final messagingDataSource = ref.watch(firebaseMessagingDataSourceProvider);
   return await messagingDataSource.getNotificationSettings();

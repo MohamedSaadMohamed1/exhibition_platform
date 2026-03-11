@@ -26,7 +26,7 @@ class OrganizerAnalyticsScreen extends ConsumerWidget {
       );
     }
 
-    final analyticsState = ref.watch(organizerAnalyticsProvider(currentUser.uid));
+    final analyticsState = ref.watch(organizerAnalyticsProvider(currentUser.id));
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldDark,
@@ -42,7 +42,7 @@ class OrganizerAnalyticsScreen extends ConsumerWidget {
             icon: const Icon(Icons.date_range, color: AppColors.textPrimaryDark),
             color: AppColors.surfaceDark,
             onSelected: (range) {
-              ref.read(organizerAnalyticsProvider(currentUser.uid).notifier)
+              ref.read(organizerAnalyticsProvider(currentUser.id).notifier)
                   .updateFilter(AnalyticsFilter(dateRange: range));
             },
             itemBuilder: (context) => [
@@ -55,7 +55,7 @@ class OrganizerAnalyticsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: _buildBody(analyticsState, currentUser.uid, ref),
+      body: _buildBody(analyticsState, currentUser.id, ref),
     );
   }
 

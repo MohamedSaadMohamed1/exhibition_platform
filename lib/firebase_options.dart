@@ -4,15 +4,7 @@ import 'package:flutter/foundation.dart'
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
-/// TODO: Replace these placeholder values with your actual Firebase configuration.
-/// You can get these values from the Firebase Console:
-/// 1. Go to https://console.firebase.google.com/
-/// 2. Select your project (or create a new one)
-/// 3. Click on the gear icon -> Project settings
-/// 4. Scroll down to "Your apps" section
-/// 5. Add a Web app and copy the configuration values
-///
-/// Alternatively, run: flutterfire configure
+/// Firebase project: candoo-7ddfc
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -39,54 +31,53 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // Firebase Web configuration (update apiKey and appId after adding web app in Firebase Console)
+  // Firebase Web configuration
+  // TODO: Add web app in Firebase Console and update appId
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyD9x-MSWyX11Ts8wHo0OsY73HWqykKrBLY',
-    appId: '1:835919913167:web:0000000000000000000000', // TODO: Update after adding web app
-    messagingSenderId: '835919913167',
-    projectId: 'mo219-caed7',
-    authDomain: 'mo219-caed7.firebaseapp.com',
-    storageBucket: 'mo219-caed7.firebasestorage.app',
-    measurementId: 'G-XXXXXXXXXX',
+    apiKey: 'AIzaSyAo9oFzl6DvKAatjFJHig_DWTBw47VxnNA',
+    appId: '1:810206757302:web:0000000000000000000000', // TODO: Update after adding web app
+    messagingSenderId: '810206757302',
+    projectId: 'candoo-7ddfc',
+    authDomain: 'candoo-7ddfc.firebaseapp.com',
+    storageBucket: 'candoo-7ddfc.firebasestorage.app',
   );
 
   // Firebase Android configuration
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD9x-MSWyX11Ts8wHo0OsY73HWqykKrBLY',
-    appId: '1:835919913167:android:699b2a21114c2f729657ba',
-    messagingSenderId: '835919913167',
-    projectId: 'mo219-caed7',
-    storageBucket: 'mo219-caed7.firebasestorage.app',
+    apiKey: 'AIzaSyAo9oFzl6DvKAatjFJHig_DWTBw47VxnNA',
+    appId: '1:810206757302:android:eb38b062f2c646997b4117',
+    messagingSenderId: '810206757302',
+    projectId: 'candoo-7ddfc',
+    storageBucket: 'candoo-7ddfc.firebasestorage.app',
   );
 
   // TODO: Replace with your actual Firebase iOS configuration
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'YOUR_IOS_API_KEY',
-    appId: '1:000000000000:ios:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    appId: '1:810206757302:ios:0000000000000000000000',
+    messagingSenderId: '810206757302',
+    projectId: 'candoo-7ddfc',
+    storageBucket: 'candoo-7ddfc.firebasestorage.app',
     iosBundleId: 'com.example.exhibitionPlatform',
   );
 
   // TODO: Replace with your actual Firebase macOS configuration
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'YOUR_MACOS_API_KEY',
-    appId: '1:000000000000:ios:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    appId: '1:810206757302:ios:0000000000000000000000',
+    messagingSenderId: '810206757302',
+    projectId: 'candoo-7ddfc',
+    storageBucket: 'candoo-7ddfc.firebasestorage.app',
     iosBundleId: 'com.example.exhibitionPlatform',
   );
 
   // Firebase Windows configuration (uses web config)
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyD9x-MSWyX11Ts8wHo0OsY73HWqykKrBLY',
-    appId: '1:835919913167:web:0000000000000000000000', // TODO: Update after adding web app
-    messagingSenderId: '835919913167',
-    projectId: 'mo219-caed7',
-    authDomain: 'mo219-caed7.firebaseapp.com',
-    storageBucket: 'mo219-caed7.firebasestorage.app',
-    measurementId: 'G-XXXXXXXXXX',
+    apiKey: 'AIzaSyAo9oFzl6DvKAatjFJHig_DWTBw47VxnNA',
+    appId: '1:810206757302:web:0000000000000000000000', // TODO: Update after adding web app
+    messagingSenderId: '810206757302',
+    projectId: 'candoo-7ddfc',
+    authDomain: 'candoo-7ddfc.firebaseapp.com',
+    storageBucket: 'candoo-7ddfc.firebasestorage.app',
   );
 }

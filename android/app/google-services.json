@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "835919913167",
-    "project_id": "mo219-caed7",
-    "storage_bucket": "mo219-caed7.firebasestorage.app"
+    "project_number": "810206757302",
+    "project_id": "candoo-7ddfc",
+    "storage_bucket": "candoo-7ddfc.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:835919913167:android:699b2a21114c2f729657ba",
+        "mobilesdk_app_id": "1:810206757302:android:eb38b062f2c646997b4117",
         "android_client_info": {
-          "package_name": "com.example.exhibition_platform"
+          "package_name": "com.data.candoo"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD9x-MSWyX11Ts8wHo0OsY73HWqykKrBLY"
+          "current_key": "AIzaSyAo9oFzl6DvKAatjFJHig_DWTBw47VxnNA"
         }
       ],
       "services": {

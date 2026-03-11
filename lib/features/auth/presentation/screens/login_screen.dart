@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_background.dart';
@@ -62,10 +63,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Listen for state changes
     ref.listen(authNotifierProvider, (previous, next) {
+      AppLogger.info('📍 LoginScreen: status changed from ${previous?.status} to ${next.status}', tag: 'LoginScreen');
+
       if (next.status == AuthStatus.codeSent) {
+        AppLogger.info('📍 LoginScreen: Navigating to OTP screen', tag: 'LoginScreen');
         context.push(AppRoutes.otp);
       }
       if (next.errorMessage != null) {
+        AppLogger.error('📍 LoginScreen: Error - ${next.errorMessage}', tag: 'LoginScreen');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),

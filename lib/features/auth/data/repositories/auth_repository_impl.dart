@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -28,15 +29,19 @@ class AuthRepositoryImpl implements AuthRepository {
     required String countryCode,
   }) async {
     try {
+      final fullPhone = '$countryCode$phoneNumber';
+      AppLogger.info('🔥 Firebase verifyPhoneNumber starting: $fullPhone', tag: 'AuthRepo');
+
       final completer = Completer<Either<Failure, String>>();
 
       await _auth.verifyPhoneNumber(
-        phoneNumber: '$countryCode$phoneNumber',
+        phoneNumber: fullPhone,
         timeout: AppConstants.otpTimeout,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification (Android only)
+          AppLogger.info('🔥 verificationCompleted (auto-verification)', tag: 'AuthRepo');
         },
         verificationFailed: (FirebaseAuthException e) {
+          AppLogger.error('🔥 verificationFailed: code=${e.code}, message=${e.message}', tag: 'AuthRepo');
           if (e.code == 'invalid-phone-number') {
             completer.complete(Left(AuthFailure.invalidPhoneNumber()));
           } else if (e.code == 'too-many-requests') {
@@ -46,15 +51,18 @@ class AuthRepositoryImpl implements AuthRepository {
           }
         },
         codeSent: (String verificationId, int? resendToken) {
+          AppLogger.info('🔥 codeSent callback: verificationId=$verificationId', tag: 'AuthRepo');
           completer.complete(Right(verificationId));
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          // Timeout handling
+          AppLogger.info('🔥 codeAutoRetrievalTimeout: $verificationId', tag: 'AuthRepo');
         },
       );
 
+      AppLogger.info('🔥 Waiting for completer...', tag: 'AuthRepo');
       return await completer.future;
     } catch (e) {
+      AppLogger.error('🔥 sendOtp exception: $e', tag: 'AuthRepo');
       return Left(e.toFailure());
     }
   }

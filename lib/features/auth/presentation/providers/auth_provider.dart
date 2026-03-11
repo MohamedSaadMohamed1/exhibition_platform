@@ -119,6 +119,7 @@ class AuthNotifier extends Notifier<AuthState> {
     required String phoneNumber,
     required String countryCode,
   }) async {
+    AppLogger.info('📱 sendOtp called: $countryCode$phoneNumber', tag: 'Auth');
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     final result = await _authRepository.sendOtp(
@@ -128,6 +129,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
     result.fold(
       (failure) {
+        AppLogger.error('❌ sendOtp FAILED: ${failure.message}', tag: 'Auth');
         state = state.copyWith(
           status: AuthStatus.error,
           errorMessage: failure.message,
@@ -135,6 +137,7 @@ class AuthNotifier extends Notifier<AuthState> {
         );
       },
       (verificationId) {
+        AppLogger.info('✅ sendOtp SUCCESS, verificationId: $verificationId', tag: 'Auth');
         state = state.copyWith(
           status: AuthStatus.codeSent,
           verificationId: verificationId,

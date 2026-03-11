@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/enums.dart';
+import '../core/utils/logger.dart';
 import '../shared/providers/providers.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import 'routes.dart';
@@ -47,6 +48,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     refreshListenable: RouterRefreshNotifier(ref),
     redirect: (context, state) {
+      AppLogger.info('🔀 Router redirect: path=${state.matchedLocation}, authStatus=${authState.status}', tag: 'Router');
+
       final isAuthenticated = authState.status == AuthStatus.authenticated;
       final isProfileIncomplete = authState.status == AuthStatus.profileIncomplete;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||
@@ -56,6 +59,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // If profile incomplete, redirect to complete profile
       if (isProfileIncomplete && state.matchedLocation != AppRoutes.completeProfile) {
+        AppLogger.info('🔀 Router: Redirecting to complete profile', tag: 'Router');
         return AppRoutes.completeProfile;
       }
 
@@ -67,7 +71,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // If authenticated and on auth route, redirect to appropriate home
       if (isAuthenticated && isAuthRoute) {
-        return _getHomeRoute(authState.user?.role);
+        final homeRoute = _getHomeRoute(authState.user?.role);
+        AppLogger.info('🔀 Router: Authenticated on auth route, redirecting to $homeRoute', tag: 'Router');
+        return homeRoute;
       }
 
       // Role-based route protection
@@ -315,6 +321,7 @@ String _getHomeRoute(UserRole? role) {
 class RouterRefreshNotifier extends ChangeNotifier {
   RouterRefreshNotifier(this._ref) {
     _ref.listen(authNotifierProvider, (previous, next) {
+      AppLogger.info('🔄 RouterRefreshNotifier: auth state changed ${previous?.status} -> ${next.status}', tag: 'Router');
       notifyListeners();
     });
   }

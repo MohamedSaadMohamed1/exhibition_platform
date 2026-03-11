@@ -197,9 +197,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           const SizedBox(height: 32),
                           // OTP Input Fields
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: List.generate(6, (index) {
-                              return _buildOtpField(index);
+                              return Flexible(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index < 5 ? 8.0 : 0,
+                                  ),
+                                  child: _buildOtpField(index),
+                                ),
+                              );
                             }),
                           ),
                           const SizedBox(height: 32),
@@ -245,7 +252,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Widget _buildOtpField(int index) {
     return SizedBox(
-      width: 45,
       height: 55,
       child: KeyboardListener(
         focusNode: FocusNode(),

@@ -32,14 +32,14 @@ class DefaultFirebaseOptions {
   }
 
   // Firebase Web configuration
-  // TODO: Add web app in Firebase Console and update appId
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAo9oFzl6DvKAatjFJHig_DWTBw47VxnNA',
-    appId: '1:810206757302:web:0000000000000000000000', // TODO: Update after adding web app
+    apiKey: 'AIzaSyAILsHeQfeZwPJ228_g7rT6XL1FtKWRgD4',
+    appId: '1:810206757302:web:5a93ed31565751e47b4117',
     messagingSenderId: '810206757302',
     projectId: 'candoo-7ddfc',
     authDomain: 'candoo-7ddfc.firebaseapp.com',
     storageBucket: 'candoo-7ddfc.firebasestorage.app',
+    measurementId: 'G-8BWD9TT88E',
   );
 
   // Firebase Android configuration
@@ -51,33 +51,34 @@ class DefaultFirebaseOptions {
     storageBucket: 'candoo-7ddfc.firebasestorage.app',
   );
 
-  // TODO: Replace with your actual Firebase iOS configuration
+  // Firebase iOS configuration
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: '1:810206757302:ios:0000000000000000000000',
+    apiKey: 'AIzaSyBlUzmkqDbGBYjkwseEyyOgwWhD_KjqEMc',
+    appId: '1:810206757302:ios:f9b138b78f8f61e27b4117',
     messagingSenderId: '810206757302',
     projectId: 'candoo-7ddfc',
     storageBucket: 'candoo-7ddfc.firebasestorage.app',
-    iosBundleId: 'com.example.exhibitionPlatform',
+    iosBundleId: 'com.loop.candoo',
   );
 
-  // TODO: Replace with your actual Firebase macOS configuration
+  // Firebase macOS configuration (same as iOS)
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_MACOS_API_KEY',
-    appId: '1:810206757302:ios:0000000000000000000000',
+    apiKey: 'AIzaSyBlUzmkqDbGBYjkwseEyyOgwWhD_KjqEMc',
+    appId: '1:810206757302:ios:f9b138b78f8f61e27b4117',
     messagingSenderId: '810206757302',
     projectId: 'candoo-7ddfc',
     storageBucket: 'candoo-7ddfc.firebasestorage.app',
-    iosBundleId: 'com.example.exhibitionPlatform',
+    iosBundleId: 'com.loop.candoo',
   );
 
   // Firebase Windows configuration (uses web config)
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAo9oFzl6DvKAatjFJHig_DWTBw47VxnNA',
-    appId: '1:810206757302:web:0000000000000000000000', // TODO: Update after adding web app
+    apiKey: 'AIzaSyAILsHeQfeZwPJ228_g7rT6XL1FtKWRgD4',
+    appId: '1:810206757302:web:5a93ed31565751e47b4117',
     messagingSenderId: '810206757302',
     projectId: 'candoo-7ddfc',
     authDomain: 'candoo-7ddfc.firebaseapp.com',
     storageBucket: 'candoo-7ddfc.firebasestorage.app',
+    measurementId: 'G-8BWD9TT88E',
   );
 }

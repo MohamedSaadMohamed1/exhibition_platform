@@ -41,13 +41,12 @@ import '../features/notifications/presentation/screens/notifications_screen.dart
 
 /// GoRouter provider with role-based guards
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authNotifierProvider);
-
   return GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
     refreshListenable: RouterRefreshNotifier(ref),
     redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
       AppLogger.info('🔀 Router redirect: path=${state.matchedLocation}, authStatus=${authState.status}', tag: 'Router');
 
       final isAuthenticated = authState.status == AuthStatus.authenticated;

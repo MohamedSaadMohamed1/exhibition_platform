@@ -48,8 +48,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       );
       return;
     }
-    // Navigate to OTP page
-    context.push(AppRoutes.otp);
+    // Send OTP via auth provider
+    ref.read(authNotifierProvider.notifier).sendOtp(
+      phoneNumber: phone,
+      countryCode: _selectedCountryCode,
+    );
   }
 
   @override

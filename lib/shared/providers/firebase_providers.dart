@@ -20,7 +20,15 @@ final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
 
 /// Firestore instance provider
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
-  return FirebaseFirestore.instance;
+  final firestore = FirebaseFirestore.instance;
+  
+  // Custom settings to prevent 'offline' errors on Web and provide consistency
+  firestore.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+  
+  return firestore;
 });
 
 /// Firebase Storage instance provider

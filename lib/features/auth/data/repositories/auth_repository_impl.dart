@@ -86,7 +86,9 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // Check if user document exists
-      final userDoc = await _usersCollection.doc(user.uid).get();
+      final userDoc = await _usersCollection.doc(user.uid).get(
+        const GetOptions(source: Source.serverAndCache),
+      );
 
       if (userDoc.exists) {
         // Existing user - return user data
@@ -126,7 +128,10 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Right(null);
       }
 
-      final userDoc = await _usersCollection.doc(user.uid).get();
+      final userDoc = await _usersCollection.doc(user.uid).get(
+        const GetOptions(source: Source.serverAndCache),
+      );
+      
       if (!userDoc.exists) {
         return const Right(null);
       }
@@ -140,7 +145,9 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, UserModel>> getUserById(String userId) async {
     try {
-      final userDoc = await _usersCollection.doc(userId).get();
+      final userDoc = await _usersCollection.doc(userId).get(
+        const GetOptions(source: Source.serverAndCache),
+      );
 
       if (!userDoc.exists) {
         return Left(FirestoreFailure.notFound('User'));

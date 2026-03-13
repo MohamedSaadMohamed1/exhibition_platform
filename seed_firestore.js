@@ -6,8 +6,6 @@ const {
   getFirestore,
   doc,
   setDoc,
-  collection,
-  addDoc,
   Timestamp,
 } = require("firebase/firestore");
 const { randomUUID } = require("crypto");
@@ -285,26 +283,53 @@ async function seedDatabase() {
   }
 
   // ===========================================================
-  // 4. BOOTHS for Event 1
+  // 4. BOOTHS (as subcollection under each event)
   // ===========================================================
   console.log("\n🏢 Seeding booths for TechX Egypt 2026...");
 
-  const booths = [
-    { number: "A1", size: "large", status: "available", price: 5000, eventId: event1Id },
-    { number: "A2", size: "medium", status: "available", price: 3500, eventId: event1Id },
-    { number: "A3", size: "small", status: "booked", price: 2000, eventId: event1Id, bookedBy: exhibitorId },
-    { number: "B1", size: "premium", status: "available", price: 8000, eventId: event1Id },
-    { number: "B2", size: "large", status: "available", price: 5000, eventId: event1Id },
+  const event1Booths = [
+    { boothNumber: "A1", size: "large", status: "available", price: 5000, amenities: ["electricity", "wifi", "table"] },
+    { boothNumber: "A2", size: "medium", status: "available", price: 3500, amenities: ["electricity", "wifi"] },
+    { boothNumber: "A3", size: "small", status: "booked", price: 2000, bookedBy: exhibitorId, amenities: ["electricity"] },
+    { boothNumber: "B1", size: "premium", status: "available", price: 8000, amenities: ["electricity", "wifi", "table", "chairs", "storage"] },
+    { boothNumber: "B2", size: "large", status: "available", price: 5000, amenities: ["electricity", "wifi", "table"] },
+    { boothNumber: "B3", size: "medium", status: "reserved", price: 3500, reservedBy: exhibitorId, amenities: ["electricity", "wifi"] },
+    { boothNumber: "C1", size: "small", status: "available", price: 2000, amenities: ["electricity"] },
+    { boothNumber: "C2", size: "small", status: "available", price: 2000, amenities: ["electricity"] },
   ];
 
-  for (const booth of booths) {
+  // Add booths as subcollection under event1
+  for (const booth of event1Booths) {
     const boothId = randomUUID();
-    await setDoc(doc(db, "booths", boothId), {
+    await setDoc(doc(db, "events", event1Id, "booths", boothId), {
       ...booth,
+      eventId: event1Id,
       createdAt: now,
       updatedAt: now,
     });
-    console.log(`  ✅ Booth added: ${booth.number} (${booth.size}) - ${booth.status}`);
+    console.log(`  ✅ Booth added: ${booth.boothNumber} (${booth.size}) - ${booth.status}`);
+  }
+
+  // Add booths for event2 (Trade Fair)
+  console.log("\n🏢 Seeding booths for Candoo Global Trade Fair...");
+
+  const event2Booths = [
+    { boothNumber: "T1", size: "premium", status: "available", price: 12000, amenities: ["electricity", "wifi", "table", "chairs", "storage", "display"] },
+    { boothNumber: "T2", size: "large", status: "available", price: 8000, amenities: ["electricity", "wifi", "table", "chairs"] },
+    { boothNumber: "T3", size: "large", status: "booked", price: 8000, bookedBy: exhibitorId, amenities: ["electricity", "wifi", "table"] },
+    { boothNumber: "T4", size: "medium", status: "available", price: 5000, amenities: ["electricity", "wifi"] },
+    { boothNumber: "T5", size: "small", status: "available", price: 3000, amenities: ["electricity"] },
+  ];
+
+  for (const booth of event2Booths) {
+    const boothId = randomUUID();
+    await setDoc(doc(db, "events", event2Id, "booths", boothId), {
+      ...booth,
+      eventId: event2Id,
+      createdAt: now,
+      updatedAt: now,
+    });
+    console.log(`  ✅ Booth added: ${booth.boothNumber} (${booth.size}) - ${booth.status}`);
   }
 
   console.log("\n🎉 Database seeded successfully!");
@@ -312,7 +337,7 @@ async function seedDatabase() {
   console.log(`  - ${users.length} Users`);
   console.log(`  - ${events.length} Events`);
   console.log(`  - ${suppliers.length} Suppliers`);
-  console.log(`  - ${booths.length} Booths`);
+  console.log(`  - ${event1Booths.length + event2Booths.length} Booths (as subcollections)`);
   process.exit(0);
 }
 

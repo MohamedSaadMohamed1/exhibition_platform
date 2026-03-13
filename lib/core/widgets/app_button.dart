@@ -127,11 +127,11 @@ class AppButton extends StatelessWidget {
         children: [
           Icon(icon, size: 20),
           const SizedBox(width: 8),
-          Text(text),
+          Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
         ],
       );
     }
-    return Text(text);
+    return Text(text, overflow: TextOverflow.ellipsis);
   }
 
   Color _getLoadingColor() {

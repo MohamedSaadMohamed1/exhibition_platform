@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -13,6 +14,9 @@ class NotificationService {
   final FirebaseFirestore _firestore;
   final Ref _ref;
 
+  /// Flag to track if messaging is supported on this platform
+  bool _isMessagingSupported = false;
+
   NotificationService(
     this._messagingDataSource,
     this._firestore,
@@ -21,25 +25,48 @@ class NotificationService {
 
   /// Initialize notification service
   Future<void> initialize() async {
-    AppLogger.info('Initializing notification service', tag: 'Notifications');
+    try {
+      AppLogger.info('Initializing notification service', tag: 'Notifications');
 
-    // Request permissions
-    await _messagingDataSource.requestPermission();
+      // Check if messaging is supported (especially for web)
+      if (kIsWeb) {
+        try {
+          // Try to get token to check if FCM is supported
+          await _messagingDataSource.getToken();
+          _isMessagingSupported = true;
+        } catch (e) {
+          AppLogger.warning(
+            'FCM not supported on this browser: $e',
+            tag: 'Notifications',
+          );
+          _isMessagingSupported = false;
+          return; // Exit early, FCM not supported
+        }
+      } else {
+        _isMessagingSupported = true;
+      }
 
-    // Set foreground notification options (iOS)
-    await _messagingDataSource.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+      // Request permissions
+      await _messagingDataSource.requestPermission();
 
-    // Get and store FCM token
-    await _updateFcmToken();
+      // Set foreground notification options (iOS)
+      await _messagingDataSource.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
-    // Listen for token refresh
-    _messagingDataSource.onTokenRefresh.listen(_onTokenRefresh);
+      // Get and store FCM token
+      await _updateFcmToken();
 
-    AppLogger.info('Notification service initialized', tag: 'Notifications');
+      // Listen for token refresh
+      _messagingDataSource.onTokenRefresh.listen(_onTokenRefresh);
+
+      AppLogger.info('Notification service initialized', tag: 'Notifications');
+    } catch (e) {
+      AppLogger.error('Failed to initialize notification service', error: e, tag: 'Notifications');
+      _isMessagingSupported = false;
+    }
   }
 
   /// Update FCM token for current user
@@ -82,6 +109,8 @@ class NotificationService {
 
   /// Remove FCM token when user logs out
   Future<void> removeFcmToken(String userId) async {
+    if (!_isMessagingSupported) return;
+
     try {
       final token = await _messagingDataSource.getToken();
       if (token == null) return;
@@ -98,6 +127,8 @@ class NotificationService {
 
   /// Subscribe to user-specific topics
   Future<void> subscribeUserTopics(String userId, String role) async {
+    if (!_isMessagingSupported) return;
+
     try {
       // Subscribe to user-specific topic
       await _messagingDataSource.subscribeToTopic(FCMTopics.user(userId));
@@ -119,6 +150,8 @@ class NotificationService {
 
   /// Unsubscribe from user topics on logout
   Future<void> unsubscribeUserTopics(String userId, String role) async {
+    if (!_isMessagingSupported) return;
+
     try {
       await _messagingDataSource.unsubscribeFromTopic(FCMTopics.user(userId));
       await _messagingDataSource.unsubscribeFromTopic(FCMTopics.forRole(role));
@@ -135,6 +168,8 @@ class NotificationService {
 
   /// Subscribe to exhibition updates
   Future<void> subscribeToExhibition(String exhibitionId) async {
+    if (!_isMessagingSupported) return;
+
     try {
       await _messagingDataSource.subscribeToTopic(FCMTopics.exhibition(exhibitionId));
       AppLogger.debug(
@@ -148,6 +183,8 @@ class NotificationService {
 
   /// Unsubscribe from exhibition updates
   Future<void> unsubscribeFromExhibition(String exhibitionId) async {
+    if (!_isMessagingSupported) return;
+
     try {
       await _messagingDataSource.unsubscribeFromTopic(FCMTopics.exhibition(exhibitionId));
       AppLogger.debug(

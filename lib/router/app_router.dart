@@ -19,6 +19,10 @@ import '../features/admin/presentation/screens/create_organizer_screen.dart';
 import '../features/admin/presentation/screens/create_supplier_screen.dart';
 import '../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/organizer_dashboard_screen.dart';
+import '../features/organizer/presentation/screens/create_exhibition_screen.dart';
+import '../features/organizer/presentation/screens/manage_booths_screen.dart';
+import '../features/organizer/presentation/screens/create_booth_screen.dart';
+import '../features/organizer/presentation/screens/edit_booth_screen.dart';
 import '../features/supplier/presentation/screens/supplier_dashboard_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/events/presentation/screens/events_screen.dart';
@@ -43,9 +47,15 @@ import '../features/notifications/presentation/screens/notifications_screen.dart
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
+
+    // // TESTING: Direct to organizer dashboard without auth
+    // initialLocation: AppRoutes.organizerDashboard,
     debugLogDiagnostics: true,
     refreshListenable: RouterRefreshNotifier(ref),
     redirect: (context, state) {
+      // // TESTING: Disable all auth checks temporarily
+      // return null;
+
       final authState = ref.read(authNotifierProvider);
       AppLogger.info('🔀 Router redirect: path=${state.matchedLocation}, authStatus=${authState.status}', tag: 'Router');
 
@@ -62,11 +72,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.completeProfile;
       }
 
-      // TODO: Re-enable auth check after testing
       // If not authenticated and not on auth route, redirect to login
-      // if (!isAuthenticated && !isAuthRoute && !isProfileIncomplete) {
-      //   return AppRoutes.login;
-      // }
+      if (!isAuthenticated && !isAuthRoute && !isProfileIncomplete) {
+        AppLogger.info('🔀 Router: Not authenticated, redirecting to login', tag: 'Router');
+        return AppRoutes.login;
+      }
 
       // If authenticated and on auth route, redirect to appropriate home
       if (isAuthenticated && isAuthRoute) {
@@ -165,6 +175,32 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.organizerDashboard,
         builder: (context, state) => const OrganizerDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.organizerCreateExhibition,
+        builder: (context, state) => const CreateExhibitionScreen(),
+      ),
+      GoRoute(
+        path: '/organizer/events/:eventId/manage-booths',
+        builder: (context, state) {
+          final eventId = state.pathParameters['eventId']!;
+          return ManageBoothsScreen(eventId: eventId);
+        },
+      ),
+      GoRoute(
+        path: '/organizer/events/:eventId/booths/create',
+        builder: (context, state) {
+          final eventId = state.pathParameters['eventId']!;
+          return CreateBoothScreen(eventId: eventId);
+        },
+      ),
+      GoRoute(
+        path: '/organizer/events/:eventId/booths/:boothId/edit',
+        builder: (context, state) {
+          final eventId = state.pathParameters['eventId']!;
+          final boothId = state.pathParameters['boothId']!;
+          return EditBoothScreen(eventId: eventId, boothId: boothId);
+        },
       ),
 
       // Supplier Routes

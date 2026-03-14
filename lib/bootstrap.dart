@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'core/config/environment.dart';
 import 'core/config/injection.dart';
@@ -38,13 +39,45 @@ Future<void> bootstrap(
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
-      // Set up background message handler
-      FirebaseMessaging.onBackgroundMessage(
-        _firebaseMessagingBackgroundHandler,
-      );
+      // Configure Firestore settings for web to handle IndexedDB errors
+      if (kIsWeb) {
+        try {
+          final firestore = FirebaseFirestore.instance;
 
-      // Request notification permissions (iOS)
-      await _requestNotificationPermissions();
+          // Disable persistence on web to avoid IndexedDB issues
+          await firestore.disableNetwork();
+          await firestore.enableNetwork();
+
+          // Configure settings to handle persistence failures gracefully
+          firestore.settings = const Settings(
+            persistenceEnabled: false,
+            cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+          );
+
+          AppLogger.info(
+            'Firestore configured for web without persistence',
+            tag: 'Bootstrap',
+          );
+        } catch (e) {
+          AppLogger.warning(
+            'Failed to configure Firestore persistence settings: $e',
+            tag: 'Bootstrap',
+          );
+          // Continue anyway - the app can still work without persistence
+        }
+      }
+
+      // Set up background message handler (only for mobile)
+      if (!kIsWeb) {
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
+      }
+
+      // Request notification permissions (mobile only)
+      if (!kIsWeb) {
+        await _requestNotificationPermissions();
+      }
 
       // Set preferred orientations
       await SystemChrome.setPreferredOrientations([

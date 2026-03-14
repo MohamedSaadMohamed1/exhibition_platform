@@ -15,13 +15,34 @@ class ProfileScreen extends ConsumerWidget {
 
     if (currentUser == null) {
       return const Scaffold(
+        backgroundColor: AppColors.backgroundDark,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
+
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
+
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+
+        actionsIconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -31,19 +52,22 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Profile Card
+
+            /// Profile Card
             Card(
+              color: AppColors.surfaceDark,
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
                     CircleAvatar(
                       radius: 50,
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      backgroundColor: AppColors.primary.withOpacity(0.2),
                       backgroundImage: currentUser.profileImage != null
                           ? NetworkImage(currentUser.profileImage!)
                           : null,
@@ -54,27 +78,33 @@ class ProfileScreen extends ConsumerWidget {
                                   : '?',
                               style: const TextStyle(
                                 fontSize: 36,
-                                color: AppColors.primary,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             )
                           : null,
                     ),
+
                     const SizedBox(height: 16),
+
                     Text(
                       currentUser.name,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+
+                    const SizedBox(height: 6),
+
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getRoleColor(currentUser.role).withOpacity(0.1),
+                        color: _getRoleColor(currentUser.role).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -90,9 +120,12 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
-            // Info Card
+
+            /// Info Card
             Card(
+              color: AppColors.surfaceDark,
               child: Column(
                 children: [
                   _InfoTile(
@@ -114,9 +147,12 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
-            // Menu Items
+
+            /// Menu
             Card(
+              color: AppColors.surfaceDark,
               child: Column(
                 children: [
                   if (currentUser.canBookBooths)
@@ -149,9 +185,12 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
-            // Logout
+
+            /// Logout
             Card(
+              color: AppColors.surfaceDark,
               child: _MenuTile(
                 icon: Icons.logout,
                 title: 'Logout',
@@ -160,23 +199,48 @@ class ProfileScreen extends ConsumerWidget {
                 onTap: () {
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Logout'),
-                      content: const Text('Are you sure you want to logout?'),
+                    builder: (dialogContext) => AlertDialog(
+                      backgroundColor: AppColors.surfaceDark,
+                      title: const Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      content: const Text(
+                        'Are you sure you want to logout?',
+                        style: TextStyle(color: AppColors.textSecondaryDark),
+                      ),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: const Text('Cancel'),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ref.read(authNotifierProvider.notifier).signOut();
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final authState = ref.watch(authNotifierProvider);
+                            return TextButton(
+                              onPressed: authState.isLoading
+                                  ? null
+                                  : () async {
+                                      await ref.read(authNotifierProvider.notifier).signOut();
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+                                    },
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.error,
+                              ),
+                              child: authState.isLoading
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.error),
+                                      ),
+                                    )
+                                  : const Text('Logout'),
+                            );
                           },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                          ),
-                          child: const Text('Logout'),
                         ),
                       ],
                     ),
@@ -228,13 +292,11 @@ class _InfoTile extends StatelessWidget {
       leading: Icon(icon, color: AppColors.primary),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+        style: const TextStyle(color: Colors.white60),
       ),
       subtitle: Text(
         value,
-        style: Theme.of(context).textTheme.bodyLarge,
+        style: const TextStyle(color: Colors.white),
       ),
     );
   }
@@ -258,12 +320,16 @@ class _MenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.textSecondary),
+      leading: Icon(icon, color: iconColor ?? Colors.white70),
       title: Text(
         title,
-        style: TextStyle(color: titleColor),
+        style: TextStyle(color: titleColor ?? Colors.white),
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.white54,
+      ),
       onTap: onTap,
     );
   }

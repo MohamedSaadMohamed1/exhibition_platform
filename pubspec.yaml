@@ -51,6 +51,7 @@ dependencies:
   path: ^1.9.0
   image: ^4.2.0
   flutter_local_notifications: ^17.2.2
+  timeago: ^3.7.0
 
   # Local Storage
   shared_preferences: ^2.3.2

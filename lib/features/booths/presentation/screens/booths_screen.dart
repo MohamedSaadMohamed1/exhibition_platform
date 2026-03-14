@@ -27,8 +27,18 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Select Booth'),
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Select Booth',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
@@ -50,7 +60,10 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  const Text('Filters: '),
+                  const Text(
+                    'Filters: ',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   const SizedBox(width: 8),
                   if (_filter.showOnlyAvailable)
                     _FilterChip(
@@ -87,7 +100,7 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.grey100,
+              color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -177,6 +190,7 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.surfaceDark,
       builder: (context) => _FilterSheet(
         currentFilter: _filter,
         onApply: (filter) {
@@ -194,6 +208,7 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.surfaceDark,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -224,12 +239,13 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
                         style:
                             Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                       ),
                       Text(
                         booth.sizeDisplayText,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryDark,
                             ),
                       ),
                     ],
@@ -260,7 +276,10 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Price'),
+                const Text(
+                  'Price',
+                  style: TextStyle(color: Colors.white),
+                ),
                 Text(
                   '\$${booth.price.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -277,6 +296,7 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
                 'Amenities',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
               ),
               const SizedBox(height: 8),
@@ -285,8 +305,14 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
                 runSpacing: 8,
                 children: booth.amenities
                     .map((a) => Chip(
-                          label: Text(a, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: AppColors.grey100,
+                          label: Text(
+                            a,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                          backgroundColor: AppColors.primary.withOpacity(0.2),
                         ))
                     .toList(),
               ),
@@ -457,6 +483,7 @@ class _BoothListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: AppColors.surfaceDark,
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         onTap: onTap,
@@ -477,8 +504,14 @@ class _BoothListItem extends StatelessWidget {
             ),
           ),
         ),
-        title: Text('Booth ${booth.boothNumber}'),
-        subtitle: Text(booth.sizeDisplayText),
+        title: Text(
+          'Booth ${booth.boothNumber}',
+          style: const TextStyle(color: Colors.white),
+        ),
+        subtitle: Text(
+          booth.sizeDisplayText,
+          style: const TextStyle(color: AppColors.textSecondaryDark),
+        ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -534,7 +567,9 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white,
+              ),
         ),
       ],
     );
@@ -618,10 +653,11 @@ class _FilterSheetState extends State<_FilterSheet> {
                 'Filter Booths',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
               ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -630,7 +666,10 @@ class _FilterSheetState extends State<_FilterSheet> {
           const SizedBox(height: 16),
           // Show only available
           SwitchListTile(
-            title: const Text('Show only available'),
+            title: const Text(
+              'Show only available',
+              style: TextStyle(color: Colors.white),
+            ),
             value: _filter.showOnlyAvailable,
             onChanged: (value) {
               setState(() {
@@ -644,6 +683,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             'Size',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
           ),
           const SizedBox(height: 8),

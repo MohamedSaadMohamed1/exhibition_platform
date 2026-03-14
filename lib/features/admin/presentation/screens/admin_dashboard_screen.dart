@@ -16,9 +16,18 @@ class AdminDashboardScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -39,6 +48,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             children: [
               // Welcome Card
               Card(
+                color: AppColors.surfaceDark,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -64,17 +74,18 @@ class AdminDashboardScreen extends ConsumerWidget {
                           children: [
                             Text(
                               'Welcome back,',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: AppColors.textSecondary),
+                              style: TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 14,
+                              ),
                             ),
                             Text(
                               currentUser?.name ?? 'Admin',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: AppColors.textPrimaryDark,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -103,11 +114,13 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               // Stats
-              Text(
+              const Text(
                 'User Statistics',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: TextStyle(
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               userStatsAsync.when(
@@ -219,6 +232,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: AppColors.surfaceDark,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -243,16 +257,18 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondaryDark,
+                  ),
                 ),
               ],
             ),
@@ -281,6 +297,7 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: AppColors.surfaceDark,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -303,23 +320,26 @@ class _ActionCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimaryDark,
+                      ),
                     ),
                     Text(
                       subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondaryDark,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: AppColors.grey400,
+                color: AppColors.grey600,
               ),
             ],
           ),

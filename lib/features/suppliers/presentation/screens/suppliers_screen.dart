@@ -40,17 +40,20 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
   @override
   Widget build(BuildContext context) {
     final suppliersState = ref.watch(suppliersNotifierProvider);
-    final categoriesAsync = ref.watch(supplierCategoriesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldDark,
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
         title: const Text(
           'Suppliers',
-          style: TextStyle(color: AppColors.textPrimaryDark),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimaryDark),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -60,41 +63,90 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
       ),
       body: Column(
         children: [
-          // Categories horizontal list
-          categoriesAsync.when(
-            data: (categories) => SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: categories.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return _CategoryChip(
-                      label: 'All',
-                      isSelected: _selectedCategory == null,
-                      onTap: () {
-                        setState(() => _selectedCategory = null);
-                        ref.read(suppliersNotifierProvider.notifier).clearFilter();
-                      },
-                    );
-                  }
-                  final category = categories[index - 1];
-                  return _CategoryChip(
-                    label: category,
-                    isSelected: _selectedCategory == category,
-                    onTap: () {
-                      setState(() => _selectedCategory = category);
-                      ref.read(suppliersNotifierProvider.notifier).applyFilter(
-                            SupplierFilter(category: category),
-                          );
-                    },
-                  );
-                },
+          // Explore Suppliers Title
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Explore Suppliers',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            loading: () => const SizedBox(height: 50),
-            error: (_, __) => const SizedBox(height: 50),
+          ),
+          // Category Filter Chips
+          SizedBox(
+            height: 50,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _CategoryChip(
+                  label: 'All',
+                  isSelected: _selectedCategory == null,
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = null;
+                    });
+                    ref.read(suppliersNotifierProvider.notifier).applyFilter(
+                          const SupplierFilter(),
+                        );
+                  },
+                ),
+                _CategoryChip(
+                  label: 'Catering',
+                  isSelected: _selectedCategory == 'Catering',
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = 'Catering';
+                    });
+                    ref.read(suppliersNotifierProvider.notifier).applyFilter(
+                          SupplierFilter(category: 'Catering'),
+                        );
+                  },
+                ),
+                _CategoryChip(
+                  label: 'Decor',
+                  isSelected: _selectedCategory == 'Decor',
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = 'Decor';
+                    });
+                    ref.read(suppliersNotifierProvider.notifier).applyFilter(
+                          SupplierFilter(category: 'Decor'),
+                        );
+                  },
+                ),
+                _CategoryChip(
+                  label: 'Photography',
+                  isSelected: _selectedCategory == 'Photography',
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = 'Photography';
+                    });
+                    ref.read(suppliersNotifierProvider.notifier).applyFilter(
+                          SupplierFilter(category: 'Photography'),
+                        );
+                  },
+                ),
+                _CategoryChip(
+                  label: 'Entertainment',
+                  isSelected: _selectedCategory == 'Entertainment',
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = 'Entertainment';
+                    });
+                    ref.read(suppliersNotifierProvider.notifier).applyFilter(
+                          SupplierFilter(category: 'Entertainment'),
+                        );
+                  },
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           // Suppliers list
@@ -196,48 +248,6 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryLight],
-                )
-              : null,
-          color: isSelected ? null : AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected ? null : Border.all(color: AppColors.grey600),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : AppColors.textSecondaryDark,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SupplierCard extends StatelessWidget {
   final SupplierModel supplier;
   final VoidCallback onTap;
@@ -254,162 +264,250 @@ class _SupplierCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(20),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Container(
-                height: 150,
-                width: double.infinity,
-                color: AppColors.grey700,
-                child: supplier.coverImage != null
-                    ? Image.network(
-                        supplier.coverImage!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
+            // Cover Image with Logo Overlay
+            Stack(
+              children: [
+                // Cover Image
+                Container(
+                  height: 180,
+                  width: double.infinity,
+                  color: AppColors.grey800,
+                  child: supplier.images.isNotEmpty
+                      ? Image.network(
+                          supplier.images.first,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(
+                              Icons.store,
+                              size: 48,
+                              color: AppColors.grey600,
+                            ),
+                          ),
+                        )
+                      : const Center(
                           child: Icon(
                             Icons.store,
                             size: 48,
-                            color: AppColors.grey500,
+                            color: AppColors.grey600,
                           ),
                         ),
-                      )
-                    : const Center(
-                        child: Icon(
-                          Icons.store,
-                          size: 48,
-                          color: AppColors.grey500,
+                ),
+                // Logo Overlay
+                Positioned(
+                  left: 12,
+                  top: 12,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: supplier.images.length > 1
+                          ? Image.network(
+                              supplier.images[1],
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.store,
+                                color: AppColors.primary,
+                                size: 30,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.store,
+                              color: AppColors.primary,
+                              size: 30,
+                            ),
+                    ),
+                  ),
+                ),
+                // Verified Badge
+                if (supplier.isVerified)
+                  Positioned(
+                    right: 12,
+                    top: 12,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withOpacity(0.9),
+                        shape: BoxShape.circle,
                       ),
-              ),
+                      child: const Icon(
+                        Icons.verified,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            // Content
+            // Supplier Info
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          supplier.businessName,
-                          style: const TextStyle(
-                            color: AppColors.textPrimaryDark,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (supplier.isVerified)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.verified,
-                                size: 14,
-                                color: AppColors.success,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'Verified',
-                                style: TextStyle(
-                                  color: AppColors.success,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Categories
-                  if (supplier.categories.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      children: supplier.categories.take(3).map((cat) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            cat,
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  // Name
+                  Text(
+                    supplier.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  const SizedBox(height: 12),
-                  // Rating and stats
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Rating and Category
                   Row(
                     children: [
                       const Icon(
                         Icons.star,
-                        color: AppColors.warning,
+                        color: Colors.amber,
                         size: 18,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         supplier.rating.toStringAsFixed(1),
                         style: const TextStyle(
-                          color: AppColors.textPrimaryDark,
-                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                      ),
-                      Text(
-                        ' (${supplier.reviewsCount})',
-                        style: const TextStyle(
-                          color: AppColors.textSecondaryDark,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: AppColors.textSecondaryDark,
-                        size: 18,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${supplier.ordersCount} orders',
+                        '(${supplier.reviewCount})',
                         style: const TextStyle(
                           color: AppColors.textSecondaryDark,
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
+                      if (supplier.category != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                            color: AppColors.grey600,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            supplier.category!,
+                            style: const TextStyle(
+                              color: AppColors.textSecondaryDark,
+                              fontSize: 13,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
+                  // Service Tags
+                  if (supplier.services.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: supplier.services.take(3).map((service) {
+                        return _ServiceTag(label: service);
+                      }).toList(),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ServiceTag extends StatelessWidget {
+  final String label;
+
+  const _ServiceTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (_) => onTap(),
+        backgroundColor: AppColors.surfaceDark,
+        selectedColor: AppColors.primary,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : AppColors.textSecondaryDark,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isSelected ? AppColors.primary : AppColors.grey700,
+            width: 1,
+          ),
+        ),
+        showCheckmark: false,
       ),
     );
   }

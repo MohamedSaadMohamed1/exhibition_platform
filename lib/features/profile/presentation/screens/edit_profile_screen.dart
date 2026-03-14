@@ -211,13 +211,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     if (currentUser == null) {
       return const Scaffold(
+        backgroundColor: AppColors.backgroundDark,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: profileState.isLoading || profileState.isUploading
@@ -229,14 +240,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.primary,
+                      color: Colors.white,
                     ),
                   )
                 : const Text(
                     'Save',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
           ),

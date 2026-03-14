@@ -21,6 +21,7 @@ class EventDetailScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       body: eventAsync.when(
         data: (event) {
           if (event == null) {
@@ -31,28 +32,30 @@ class EventDetailScreen extends ConsumerWidget {
             slivers: [
               // App Bar with Image
               SliverAppBar(
+                backgroundColor: AppColors.surfaceDark,
                 expandedHeight: 250,
                 pinned: true,
+                iconTheme: const IconThemeData(color: Colors.white),
                 flexibleSpace: FlexibleSpaceBar(
                   background: event.coverImage != null
                       ? Image.network(
                           event.coverImage!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.grey200,
+                            color: AppColors.grey800,
                             child: const Icon(
                               Icons.event,
                               size: 64,
-                              color: AppColors.grey400,
+                              color: AppColors.grey600,
                             ),
                           ),
                         )
                       : Container(
-                          color: AppColors.grey200,
+                          color: AppColors.grey800,
                           child: const Icon(
                             Icons.event,
                             size: 64,
-                            color: AppColors.grey400,
+                            color: AppColors.grey600,
                           ),
                         ),
                 ),
@@ -104,7 +107,9 @@ class EventDetailScreen extends ConsumerWidget {
                               const SizedBox(width: 4),
                               Text(
                                 '${event.interestedCount} interested',
-                                style: Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondaryDark,
+                                    ),
                               ),
                             ],
                           ),
@@ -117,6 +122,7 @@ class EventDetailScreen extends ConsumerWidget {
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                       ),
                       const SizedBox(height: 16),
@@ -149,6 +155,7 @@ class EventDetailScreen extends ConsumerWidget {
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
                         ),
                         const SizedBox(height: 8),
@@ -157,8 +164,12 @@ class EventDetailScreen extends ConsumerWidget {
                           runSpacing: 8,
                           children: event.tags
                               .map((tag) => Chip(
-                                    label: Text(tag),
-                                    backgroundColor: AppColors.grey100,
+                                    label: Text(
+                                      tag,
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: AppColors.surfaceDark,
+                                    side: const BorderSide(color: AppColors.grey700),
                                   ))
                               .toList(),
                         ),
@@ -170,13 +181,14 @@ class EventDetailScreen extends ConsumerWidget {
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         event.description,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryDark,
                               height: 1.6,
                             ),
                       ),
@@ -198,10 +210,10 @@ class EventDetailScreen extends ConsumerWidget {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: AppColors.surfaceDark,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withOpacity(0.3),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -282,13 +294,14 @@ class _InfoRow extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
               ),
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
               ),
             ],

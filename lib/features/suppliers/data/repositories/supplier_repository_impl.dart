@@ -16,9 +16,6 @@ class SupplierRepositoryImpl implements SupplierRepository {
   CollectionReference<Map<String, dynamic>> get _suppliersCollection =>
       _firestore.collection(FirestoreCollections.suppliers);
 
-  CollectionReference<Map<String, dynamic>> get _servicesCollection =>
-      _firestore.collection(FirestoreCollections.services);
-
   @override
   Future<Either<Failure, List<SupplierModel>>> getSuppliers({
     SupplierFilter? filter,
@@ -280,8 +277,10 @@ class SupplierRepositoryImpl implements SupplierRepository {
     int limit = 20,
   }) async {
     try {
-      final snapshot = await _servicesCollection
-          .where('supplierId', isEqualTo: supplierId)
+      // Services are stored as a subcollection under each supplier
+      final snapshot = await _suppliersCollection
+          .doc(supplierId)
+          .collection('services')
           .where('isActive', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)

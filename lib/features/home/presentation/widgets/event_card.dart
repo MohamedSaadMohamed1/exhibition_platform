@@ -6,32 +6,36 @@ class EventCard extends StatelessWidget {
   final EventModel event;
   final VoidCallback? onTap;
   final VoidCallback? onInterestTap;
+  final VoidCallback? onBookmarkTap;
+  final bool isBookmarked;
 
   const EventCard({
     super.key,
     required this.event,
     this.onTap,
     this.onInterestTap,
+    this.onBookmarkTap,
+    this.isBookmarked = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Event Image - larger ratio
-            ClipRRect(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Event Image - larger ratio (tappable)
+          GestureDetector(
+            onTap: onTap,
+            child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: AspectRatio(
-                aspectRatio: 4 / 3,
+                aspectRatio: 16 / 9,
                 child: event.images.isNotEmpty
                     ? Image.network(
                         event.images.first,
@@ -43,6 +47,7 @@ class EventCard extends StatelessWidget {
                     : _buildPlaceholderImage(),
               ),
             ),
+          ),
             // Event Details
             Padding(
               padding: const EdgeInsets.all(16),
@@ -132,13 +137,69 @@ class EventCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  // Action Buttons Row
+                  Row(
+                    children: [
+                      // Explore & Book Button
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onTap,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Explore & Book',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Bookmark Button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceDark,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.grey700,
+                            width: 1,
+                          ),
+                        ),
+                        child: IconButton(
+                          onPressed: onBookmarkTap,
+                          icon: Icon(
+                            isBookmarked
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: isBookmarked
+                                ? AppColors.primary
+                                : Colors.white,
+                            size: 24,
+                          ),
+                          padding: const EdgeInsets.all(10),
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildPlaceholderImage() {

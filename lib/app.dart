@@ -150,7 +150,7 @@ class _ExhibitionPlatformAppState extends ConsumerState<ExhibitionPlatformApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }

@@ -377,7 +377,7 @@ class _ManageBoothsScreenState extends ConsumerState<ManageBoothsScreen> {
                 children: booth.amenities
                     .map((a) => Chip(
                           label: Text(a, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: AppColors.grey100,
+                          backgroundColor: AppColors.grey800,
                         ))
                     .toList(),
               ),

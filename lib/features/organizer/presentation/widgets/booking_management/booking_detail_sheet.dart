@@ -150,7 +150,7 @@ class _BookingDetailSheetState extends ConsumerState<BookingDetailSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.grey100,
+                  color: AppColors.grey800,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

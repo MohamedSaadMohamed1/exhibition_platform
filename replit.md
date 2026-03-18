@@ -30,8 +30,13 @@ Clean Architecture with feature-based modules under `lib/`:
 ## Running the App
 The workflow builds the Flutter web app and serves it on port 5000:
 ```
-flutter build web --release && npx serve build/web -l 5000 -s
+flutter build web --release && serve build/web -l 5000 -s
 ```
+(`serve` installed globally via `npm install -g serve`)
+
+## Known Fixes
+- **Firestore settings conflict**: On web, `FirebaseFirestore.instance.settings` can only be set once. It is set exclusively in `lib/bootstrap.dart` immediately after `Firebase.initializeApp()` (with `persistenceEnabled: false`). The `firestoreProvider` in `lib/shared/providers/firebase_providers.dart` returns the instance directly without re-applying settings.
+- **Auth notifier error handling**: `_checkAuth()` in `splash_screen.dart` has try-catch to ensure navigation to `/login` even if auth state reading throws.
 
 ## Deployment
 Configured as a static site deployment:

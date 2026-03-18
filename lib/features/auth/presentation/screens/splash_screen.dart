@@ -55,19 +55,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    final authState = ref.read(authNotifierProvider);
+    try {
+      final authState = ref.read(authNotifierProvider);
 
-    switch (authState.status) {
-      case AuthStatus.authenticated:
-        final role = authState.user?.role;
-        // Navigate based on role
-        context.go(role?.homeRoute ?? AppRoutes.home);
-        break;
-      case AuthStatus.profileIncomplete:
-        context.go(AppRoutes.completeProfile);
-        break;
-      default:
+      switch (authState.status) {
+        case AuthStatus.authenticated:
+          final role = authState.user?.role;
+          context.go(role?.homeRoute ?? AppRoutes.home);
+          break;
+        case AuthStatus.profileIncomplete:
+          context.go(AppRoutes.completeProfile);
+          break;
+        default:
+          context.go(AppRoutes.login);
+      }
+    } catch (e) {
+      if (mounted) {
         context.go(AppRoutes.login);
+      }
     }
   }
 

@@ -34,36 +34,28 @@ Future<void> bootstrap(
         AppEnvironment.setEnvironment(environment);
       }
 
-      // Initialize Firebase
+      // Initialize Firebase first
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
-      // Configure Firestore settings for web to handle IndexedDB errors
+      // Configure Firestore settings for web immediately after init,
+      // before any Firestore reads/writes
       if (kIsWeb) {
         try {
-          final firestore = FirebaseFirestore.instance;
-
-          // Disable persistence on web to avoid IndexedDB issues
-          await firestore.disableNetwork();
-          await firestore.enableNetwork();
-
-          // Configure settings to handle persistence failures gracefully
-          firestore.settings = const Settings(
+          FirebaseFirestore.instance.settings = const Settings(
             persistenceEnabled: false,
             cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
           );
-
           AppLogger.info(
             'Firestore configured for web without persistence',
             tag: 'Bootstrap',
           );
         } catch (e) {
           AppLogger.warning(
-            'Failed to configure Firestore persistence settings: $e',
+            'Failed to configure Firestore settings: $e',
             tag: 'Bootstrap',
           );
-          // Continue anyway - the app can still work without persistence
         }
       }
 

@@ -22,13 +22,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "flutter build web --release && npx serve build/web -l 5000 -s"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flutter build web --release && serve build/web -l 5000 -s"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000

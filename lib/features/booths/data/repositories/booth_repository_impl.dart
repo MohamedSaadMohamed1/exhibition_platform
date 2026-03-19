@@ -124,13 +124,17 @@ class BoothRepositoryImpl implements BoothRepository {
 
       await _boothsCollection(eventId).doc(boothId).set(booth.toFirestore());
 
-      // Update event booth count
-      await _firestore
-          .collection(FirestoreCollections.events)
-          .doc(eventId)
-          .update({
-        'boothCount': FieldValue.increment(1),
-      });
+      // Update event booth count — non-critical, don't fail booth creation if this errors
+      try {
+        await _firestore
+            .collection(FirestoreCollections.events)
+            .doc(eventId)
+            .update({
+          'boothCount': FieldValue.increment(1),
+        });
+      } catch (_) {
+        // boothCount update failed (e.g. field missing) — booth is still saved
+      }
 
       return Right(booth);
     } catch (e) {
@@ -151,13 +155,17 @@ class BoothRepositoryImpl implements BoothRepository {
         batch.set(boothRef, booth.toFirestore());
       }
 
-      // Update event booth count
-      batch.update(
-        _firestore.collection(FirestoreCollections.events).doc(eventId),
-        {'boothCount': FieldValue.increment(booths.length)},
-      );
-
       await batch.commit();
+
+      // Update event booth count after batch — non-critical
+      try {
+        await _firestore
+            .collection(FirestoreCollections.events)
+            .doc(eventId)
+            .update({'boothCount': FieldValue.increment(booths.length)});
+      } catch (_) {
+        // boothCount update failed — booths are still saved
+      }
 
       return Right(booths);
     } catch (e) {
@@ -207,13 +215,17 @@ class BoothRepositoryImpl implements BoothRepository {
     try {
       await _boothsCollection(eventId).doc(boothId).delete();
 
-      // Update event booth count
-      await _firestore
-          .collection(FirestoreCollections.events)
-          .doc(eventId)
-          .update({
-        'boothCount': FieldValue.increment(-1),
-      });
+      // Update event booth count — non-critical
+      try {
+        await _firestore
+            .collection(FirestoreCollections.events)
+            .doc(eventId)
+            .update({
+          'boothCount': FieldValue.increment(-1),
+        });
+      } catch (_) {
+        // boothCount update failed — booth is still deleted
+      }
 
       return const Right(null);
     } catch (e) {

@@ -68,12 +68,17 @@ class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, Strin
   @override
   OrganizerBoothsState build(String eventId) {
     _boothRepository = ref.watch(boothRepositoryProvider);
-    _loadBooths(eventId);
-    _loadStats(eventId);
+    // Use Future.microtask so state is fully initialized before we access it,
+    // and pass refresh:true to bypass the concurrent-load guard on first run.
+    Future.microtask(() async {
+      await _loadBooths(eventId, refresh: true);
+      await _loadStats(eventId);
+    });
     return const OrganizerBoothsState(isLoading: true);
   }
 
   Future<void> _loadBooths(String eventId, {bool refresh = false}) async {
+    // Prevent concurrent duplicate loads; always allow explicit refresh.
     if (state.isLoading && !refresh) return;
 
     state = state.copyWith(

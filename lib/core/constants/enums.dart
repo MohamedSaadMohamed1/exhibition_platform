@@ -268,3 +268,24 @@ enum LoadingState {
   success,
   error,
 }
+
+/// Account request status
+enum RequestStatus {
+  pending('pending'),
+  approved('approved'),
+  rejected('rejected');
+
+  const RequestStatus(this.value);
+  final String value;
+
+  static RequestStatus fromString(String value) {
+    return RequestStatus.values.firstWhere(
+      (status) => status.value == value,
+      orElse: () => RequestStatus.pending,
+    );
+  }
+
+  bool get isPending => this == RequestStatus.pending;
+  bool get isApproved => this == RequestStatus.approved;
+  bool get isRejected => this == RequestStatus.rejected;
+}

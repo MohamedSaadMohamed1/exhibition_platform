@@ -202,6 +202,14 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _ActionCard(
+                title: 'Account Requests',
+                subtitle: 'Approve or reject organizer and supplier requests',
+                icon: Icons.assignment_ind,
+                color: AppColors.warning,
+                onTap: () => context.push(AppRoutes.adminAccountRequests),
+              ),
+              const SizedBox(height: 12),
+              _ActionCard(
                 title: 'View Events',
                 subtitle: 'Browse all events',
                 icon: Icons.event,

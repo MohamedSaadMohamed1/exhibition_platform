@@ -13,10 +13,12 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/otp_screen.dart';
 import '../features/auth/presentation/screens/complete_profile_screen.dart';
+import '../features/auth/presentation/screens/request_account_screen.dart';
 import '../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import '../features/admin/presentation/screens/admin_users_screen.dart';
 import '../features/admin/presentation/screens/create_organizer_screen.dart';
 import '../features/admin/presentation/screens/create_supplier_screen.dart';
+import '../features/admin/presentation/screens/admin_account_requests_screen.dart';
 import '../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/organizer_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/create_exhibition_screen.dart';
@@ -64,6 +66,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.signup ||
           state.matchedLocation == AppRoutes.otp ||
+          state.matchedLocation == AppRoutes.requestAccount ||
           state.matchedLocation == AppRoutes.splash;
 
       // If profile incomplete, redirect to complete profile
@@ -140,6 +143,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.completeProfile,
         builder: (context, state) => const CompleteProfileScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.requestAccount,
+        builder: (context, state) => const RequestAccountScreen(),
+      ),
 
       // Home Route
       GoRoute(
@@ -163,6 +170,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminCreateSupplier,
         builder: (context, state) => const CreateSupplierScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminAccountRequests,
+        builder: (context, state) => const AdminAccountRequestsScreen(),
       ),
 
       // Owner Routes

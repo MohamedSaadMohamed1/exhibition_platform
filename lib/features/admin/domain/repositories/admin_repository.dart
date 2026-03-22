@@ -3,6 +3,7 @@ import '../../../../core/constants/enums.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/models/supplier_model.dart';
+import '../../../../shared/models/account_request_model.dart';
 
 /// Admin repository interface
 abstract class AdminRepository {
@@ -60,6 +61,17 @@ abstract class AdminRepository {
 
   /// Get all suppliers (users)
   Future<Either<Failure, List<UserModel>>> getSupplierUsers();
+
+  /// Get account requests
+  Future<Either<Failure, List<AccountRequestModel>>> getAccountRequests({
+    RequestStatus? statusFilter,
+  });
+
+  /// Approve account request
+  Future<Either<Failure, void>> approveAccountRequest(String requestId, String adminId);
+
+  /// Reject account request
+  Future<Either<Failure, void>> rejectAccountRequest(String requestId);
 }
 
 /// User statistics model

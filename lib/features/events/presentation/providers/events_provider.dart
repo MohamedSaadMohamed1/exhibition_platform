@@ -43,13 +43,13 @@ class EventsNotifier extends Notifier<EventsState> {
   @override
   EventsState build() {
     _eventRepository = ref.watch(eventRepositoryProvider);
-    _loadEvents();
+    Future.microtask(() => _loadEvents());
     return const EventsState(isLoading: true);
   }
 
   /// Load events
   Future<void> _loadEvents({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+    if (state.isLoading && state.events.isNotEmpty && !refresh) return;
 
     state = state.copyWith(
       isLoading: true,

@@ -6,6 +6,7 @@ abstract class AppRoutes {
   static const String signup = '/signup';
   static const String otp = '/otp';
   static const String completeProfile = '/complete-profile';
+  static const String requestAccount = '/request-account';
 
   // Main routes (Visitor/Home)
   static const String home = '/home';
@@ -15,6 +16,7 @@ abstract class AppRoutes {
   static const String adminUsers = '/admin/users';
   static const String adminCreateOrganizer = '/admin/create-organizer';
   static const String adminCreateSupplier = '/admin/create-supplier';
+  static const String adminAccountRequests = '/admin/account-requests';
 
   // Owner routes
   static const String ownerDashboard = '/owner/dashboard';

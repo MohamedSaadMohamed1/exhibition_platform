@@ -6,6 +6,7 @@ import '../../../../core/constants/enums.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/models/supplier_model.dart';
+import '../../../../shared/models/account_request_model.dart';
 import '../../domain/repositories/admin_repository.dart';
 
 /// Implementation of AdminRepository
@@ -21,6 +22,70 @@ class AdminRepositoryImpl implements AdminRepository {
 
   CollectionReference<Map<String, dynamic>> get _suppliersCollection =>
       _firestore.collection(FirestoreCollections.suppliers);
+
+  CollectionReference<Map<String, dynamic>> get _accountRequestsCollection =>
+      _firestore.collection(FirestoreCollections.accountRequests);
+
+  @override
+  Future<Either<Failure, List<AccountRequestModel>>> getAccountRequests({
+    RequestStatus? statusFilter,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _accountRequestsCollection.orderBy('createdAt', descending: true);
+      
+      if (statusFilter != null) {
+        query = query.where('status', isEqualTo: statusFilter.value);
+      }
+
+      final snapshot = await query.get();
+      final requests = snapshot.docs.map((doc) => AccountRequestModel.fromFirestore(doc)).toList();
+      return Right(requests);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> approveAccountRequest(String requestId, String adminId) async {
+    try {
+      // First get the request
+      final doc = await _accountRequestsCollection.doc(requestId).get();
+      if (!doc.exists) {
+        return Left(FirestoreFailure.notFound('Account request'));
+      }
+      
+      final request = AccountRequestModel.fromFirestore(doc);
+      
+      // Update request status
+      final batch = _firestore.batch();
+      batch.update(doc.reference, {
+        'status': RequestStatus.approved.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // No actual user creation here, the UI will take the decision to create them 
+      // by calling createOrganizer or createSupplier since they require more fields manually.
+      // But we can just set it as approved.
+      await batch.commit();
+
+      return const Right(null);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> rejectAccountRequest(String requestId) async {
+    try {
+      await _accountRequestsCollection.doc(requestId).update({
+        'status': RequestStatus.rejected.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return const Right(null);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
 
   @override
   Future<Either<Failure, UserModel>> createOrganizer({
@@ -182,10 +247,13 @@ class AdminRepositoryImpl implements AdminRepository {
     String? lastUserId,
   }) async {
     try {
-      Query<Map<String, dynamic>> query = _usersCollection.orderBy('createdAt', descending: true);
+      Query<Map<String, dynamic>> query = _usersCollection;
 
       if (roleFilter != null) {
         query = query.where('role', isEqualTo: roleFilter.value);
+      } else {
+        // Apply orderBy ONLY when there's no filter to avoid the composite index requirement.
+        query = query.orderBy('createdAt', descending: true);
       }
 
       if (lastUserId != null) {
@@ -210,7 +278,6 @@ class AdminRepositoryImpl implements AdminRepository {
       final snapshot = await _usersCollection
           .where('role', isEqualTo: role.value)
           .where('isActive', isEqualTo: true)
-          .orderBy('name')
           .get();
 
       final users = snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();

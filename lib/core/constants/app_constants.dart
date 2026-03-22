@@ -50,6 +50,7 @@ abstract class FirestoreCollections {
   static const String interests = 'interests';
   static const String interestedUsers = 'interested_users';
   static const String appConfig = 'app_config';
+  static const String accountRequests = 'account_requests';
 }
 
 /// Firebase Storage paths

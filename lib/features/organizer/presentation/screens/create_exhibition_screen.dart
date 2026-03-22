@@ -1,8 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/providers/providers.dart';
+import '../../../events/presentation/providers/events_provider.dart';
 
 class CreateExhibitionScreen extends ConsumerStatefulWidget {
   const CreateExhibitionScreen({super.key});
@@ -21,6 +25,18 @@ class _CreateExhibitionScreenState
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isCreating = false;
+  Uint8List? _bannerImageBytes;
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _bannerImageBytes = bytes;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -88,6 +104,9 @@ class _CreateExhibitionScreenState
             backgroundColor: AppColors.success,
           ),
         );
+
+        // Refresh the events list so the new event appears immediately
+        ref.invalidate(organizerEventsProvider(currentUser.id));
 
         // Show dialog to create booths
         _showBoothCreationDialog(event.id, event.title);
@@ -176,42 +195,70 @@ class _CreateExhibitionScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Exhibition Image Upload
-              Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceDark,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.grey800, width: 2),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 64,
-                      color: AppColors.grey600,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Add Exhibition Banner',
-                      style: TextStyle(
-                        color: AppColors.textSecondaryDark,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement image picker
-                      },
-                      icon: const Icon(Icons.upload),
-                      label: const Text('Upload Image'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.organizerColor,
-                      ),
-                    ),
-                  ],
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.grey800, width: 2),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: _bannerImageBytes != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(
+                              _bannerImageBytes!,
+                              fit: BoxFit.cover,
+                            ),
+                            Container(
+                              color: Colors.black.withOpacity(0.4),
+                              child: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.edit, color: Colors.white, size: 32),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Change Image',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 64,
+                              color: AppColors.grey600,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Add Exhibition Banner',
+                              style: TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: _pickImage,
+                              icon: const Icon(Icons.upload),
+                              label: const Text('Upload Image'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.organizerColor,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: 24),

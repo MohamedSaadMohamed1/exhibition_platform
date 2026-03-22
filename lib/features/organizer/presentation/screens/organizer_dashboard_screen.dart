@@ -484,6 +484,7 @@ class _EventsTab extends ConsumerWidget {
                   label: const Text('New Event'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.organizerColor,
+                    minimumSize: const Size(0, 44),
                   ),
                 ),
               ],

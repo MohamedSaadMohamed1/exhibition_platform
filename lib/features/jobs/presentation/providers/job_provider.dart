@@ -44,12 +44,12 @@ class JobsNotifier extends Notifier<JobsState> {
   @override
   JobsState build() {
     _jobRepository = ref.watch(jobRepositoryProvider);
-    _loadJobs();
+    Future.microtask(() => _loadJobs());
     return const JobsState(isLoading: true);
   }
 
   Future<void> _loadJobs({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+    if (state.isLoading && state.jobs.isNotEmpty && !refresh) return;
 
     state = state.copyWith(
       isLoading: true,

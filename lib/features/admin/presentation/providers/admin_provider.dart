@@ -27,13 +27,14 @@ class AdminUsersState {
     bool? hasMore,
     String? errorMessage,
     UserRole? roleFilter,
+    bool clearRoleFilter = false,
   }) {
     return AdminUsersState(
       users: users ?? this.users,
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
       errorMessage: errorMessage,
-      roleFilter: roleFilter ?? this.roleFilter,
+      roleFilter: clearRoleFilter ? null : (roleFilter ?? this.roleFilter),
     );
   }
 }
@@ -45,13 +46,13 @@ class AdminUsersNotifier extends Notifier<AdminUsersState> {
   @override
   AdminUsersState build() {
     _adminRepository = ref.watch(adminRepositoryProvider);
-    _loadUsers();
+    Future.microtask(() => _loadUsers());
     return const AdminUsersState(isLoading: true);
   }
 
   /// Load users
   Future<void> _loadUsers({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+    if (state.isLoading && state.users.isNotEmpty && !refresh) return;
 
     state = state.copyWith(
       isLoading: true,
@@ -112,7 +113,11 @@ class AdminUsersNotifier extends Notifier<AdminUsersState> {
 
   /// Filter by role
   void filterByRole(UserRole? role) {
-    state = state.copyWith(roleFilter: role);
+    if (role == null) {
+      state = state.copyWith(clearRoleFilter: true);
+    } else {
+      state = state.copyWith(roleFilter: role);
+    }
     _loadUsers(refresh: true);
   }
 

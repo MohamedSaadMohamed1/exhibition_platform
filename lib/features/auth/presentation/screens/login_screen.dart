@@ -194,7 +194,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: () => context.push(AppRoutes.requestAccount),
+                              child: Text(
+                                'Want to host an exhibition or offer services?',
+                                style: TextStyle(
+                                  color: AppColors.secondary,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             // Terms and Privacy
                             RichText(
                               textAlign: TextAlign.center,

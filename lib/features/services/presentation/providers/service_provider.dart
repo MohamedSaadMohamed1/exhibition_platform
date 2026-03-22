@@ -43,12 +43,12 @@ class ServicesNotifier extends Notifier<ServicesState> {
   @override
   ServicesState build() {
     _serviceRepository = ref.watch(serviceRepositoryProvider);
-    _loadServices();
+    Future.microtask(() => _loadServices());
     return const ServicesState(isLoading: true);
   }
 
   Future<void> _loadServices({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+    if (state.isLoading && state.services.isNotEmpty && !refresh) return;
 
     state = state.copyWith(
       isLoading: true,

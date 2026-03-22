@@ -44,12 +44,12 @@ class SuppliersNotifier extends Notifier<SuppliersState> {
   @override
   SuppliersState build() {
     _supplierRepository = ref.watch(supplierRepositoryProvider);
-    _loadSuppliers();
+    Future.microtask(() => _loadSuppliers());
     return const SuppliersState(isLoading: true);
   }
 
   Future<void> _loadSuppliers({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+    if (state.isLoading && state.suppliers.isNotEmpty && !refresh) return;
 
     state = state.copyWith(
       isLoading: true,

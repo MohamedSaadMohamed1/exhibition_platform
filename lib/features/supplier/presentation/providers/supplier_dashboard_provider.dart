@@ -62,10 +62,12 @@ final myServicesProvider = FutureProvider<List<ServiceModel>>((ref) async {
   final snapshot = await FirebaseFirestore.instance
       .collection('services')
       .where('supplierId', isEqualTo: supplier.id)
-      .orderBy('createdAt', descending: true)
       .get();
 
-  return snapshot.docs.map((doc) => ServiceModel.fromFirestore(doc)).toList();
+  final services = snapshot.docs.map((doc) => ServiceModel.fromFirestore(doc)).toList();
+  // Sort locally to bypass missing composite index in Firebase
+  services.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return services;
 });
 
 /// Provider for current supplier's orders
@@ -90,12 +92,15 @@ final supplierStatsProvider = FutureProvider<SupplierDashboardStats>((ref) async
   final firestore = FirebaseFirestore.instance;
 
   // Get services count from root collection
+  // Fetch all services, then calculate active ones to bypass missing index
   final servicesSnapshot = await firestore
       .collection('services')
       .where('supplierId', isEqualTo: supplier.id)
-      .where('isActive', isEqualTo: true)
-      .count()
       .get();
+      
+  final activeServices = servicesSnapshot.docs
+      .where((doc) => doc.data()['isActive'] == true)
+      .length;
 
   // Get orders
   final ordersSnapshot = await firestore
@@ -127,7 +132,7 @@ final supplierStatsProvider = FutureProvider<SupplierDashboardStats>((ref) async
   }
 
   return SupplierDashboardStats(
-    activeServices: servicesSnapshot.count ?? 0,
+    activeServices: activeServices,
     pendingOrders: pendingOrders,
     completedOrders: completedOrders,
     totalRevenue: totalRevenue,
@@ -218,7 +223,13 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
         return false;
       }
 
-      await servicesCollection.doc(service.id).update(service.toUpdateMap());
+      final supplier = await ref.read(currentSupplierProvider.future);
+      
+      final updateData = service.toUpdateMap();
+      updateData['supplierId'] = supplier!.id;
+      updateData['supplierName'] = supplier.businessName;
+
+      await servicesCollection.doc(service.id).update(updateData);
       ref.invalidate(myServicesProvider);
       state = const AsyncValue.data(null);
       return true;

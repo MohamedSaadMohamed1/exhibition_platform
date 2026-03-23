@@ -6,30 +6,55 @@ import '../../../../shared/models/order_model.dart';
 import '../../../../shared/models/supplier_model.dart';
 import '../../../../shared/providers/providers.dart';
 
-/// Provider for current user's supplier profile
-final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
+/// Provider to store the currently selected supplier ID
+final selectedSupplierIdProvider = StateProvider<String?>((ref) => null);
+
+/// Provider to get ALL suppliers owned by the user
+final userSuppliersProvider = FutureProvider<List<SupplierModel>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) return null;
+  if (userId == null) return [];
 
   var snapshot = await FirebaseFirestore.instance
       .collection('suppliers')
       .where('ownerId', isEqualTo: userId)
-      .where('isActive', isEqualTo: true)
-      .limit(1)
       .get();
       
-  if (snapshot.docs.isEmpty) {
+  List<SupplierModel> suppliers = snapshot.docs
+      .map((doc) => SupplierModel.fromFirestore(doc))
+      .toList();
+
+  if (suppliers.isEmpty) {
     // Fallback for legacy database records
     snapshot = await FirebaseFirestore.instance
         .collection('suppliers')
         .where('userId', isEqualTo: userId)
-        .where('isActive', isEqualTo: true)
-        .limit(1)
         .get();
+    suppliers = snapshot.docs
+        .map((doc) => SupplierModel.fromFirestore(doc))
+        .toList();
   }
+  
+  // Stable sorting by creation date
+  suppliers.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return suppliers;
+});
 
-  if (snapshot.docs.isNotEmpty) {
-    return SupplierModel.fromFirestore(snapshot.docs.first);
+/// Provider for current user's ACTIVE supplier profile
+final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
+  final suppliers = await ref.watch(userSuppliersProvider.future);
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+
+  if (suppliers.isNotEmpty) {
+    final selectedId = ref.watch(selectedSupplierIdProvider);
+    if (selectedId != null) {
+      try {
+        return suppliers.firstWhere((s) => s.id == selectedId);
+      } catch (_) {
+        return suppliers.first;
+      }
+    }
+    return suppliers.first;
   }
 
   // AUTO-PROVISION: If the user has 'supplier' role but their supplier document is completely missing 
@@ -45,14 +70,44 @@ final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
       ownerId: userId,
       createdByAdmin: 'system',
       createdAt: DateTime.now(),
-      isActive: true,
+      isActive: true, // Auto-Active for visibility
     );
     await docRef.set(newSupplier.toFirestore());
+    // Invalidate list to fetch the newly provisioned one on next pull
+    ref.invalidate(userSuppliersProvider);
     return newSupplier;
   }
 
   return null;
 });
+
+/// Global API to manually create a new Business Profile side-by-side with existing ones
+Future<void> createBusinessProfile(WidgetRef ref, String businessName) async {
+  final user = ref.read(currentUserProvider).valueOrNull;
+  if (user == null) return;
+
+  final docRef = FirebaseFirestore.instance.collection('suppliers').doc();
+  final newSupplier = SupplierModel(
+    id: docRef.id,
+    name: businessName,
+    description: 'Please describe your business.',
+    ownerId: user.id,
+    createdByAdmin: 'system',
+    createdAt: DateTime.now(),
+    isActive: true, // Auto-Active for visibility
+  );
+  
+  await docRef.set(newSupplier.toFirestore());
+  
+  // Refresh and switch to the new business!
+  ref.invalidate(userSuppliersProvider);
+  ref.read(selectedSupplierIdProvider.notifier).state = docRef.id;
+  
+  // Invalidate loaded data
+  ref.invalidate(myServicesProvider);
+  ref.invalidate(recentOrdersProvider);
+  ref.invalidate(supplierStatsProvider);
+}
 
 /// Provider for current supplier's services (stored as subcollection)
 final myServicesProvider = FutureProvider<List<ServiceModel>>((ref) async {

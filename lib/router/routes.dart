@@ -40,6 +40,7 @@ abstract class AppRoutes {
   static const String supplierServices = '/supplier/services';
   static const String supplierOrders = '/supplier/orders';
   static const String supplierProfile = '/supplier/profile';
+  static const String supplierBusinessSettings = '/supplier/business-settings';
 
   // Visitor routes (exhibitions, events, services, etc.)
   static const String exhibitions = '/exhibitions';

@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,6 +13,8 @@ import '../../../../shared/models/order_model.dart';
 import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../shared/widgets/role_dashboard_shell.dart';
+import '../../../../core/services/image_upload_service.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../chat/presentation/screens/chats_screen.dart' show userChatsProvider;
 import '../providers/supplier_dashboard_provider.dart';
@@ -116,6 +121,10 @@ class _DashboardTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Business Profiles Dropdown Switcher
+              const _BusinessSwitcherHeader(),
+              const SizedBox(height: 16),
+
               // Welcome Card
               _WelcomeCard(currentUser: currentUser),
               const SizedBox(height: 24),
@@ -219,6 +228,177 @@ class _DashboardTab extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BusinessSwitcherHeader extends ConsumerWidget {
+  const _BusinessSwitcherHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suppliersAsync = ref.watch(userSuppliersProvider);
+    final selectedId = ref.watch(selectedSupplierIdProvider);
+
+    return suppliersAsync.when(
+      data: (suppliers) {
+        if (suppliers.isEmpty) return const SizedBox.shrink();
+
+        final currentSupplier = selectedId != null
+            ? suppliers.firstWhere(
+                (s) => s.id == selectedId,
+                orElse: () => suppliers.first,
+              )
+            : suppliers.first;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.supplierColor.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.storefront_rounded, color: AppColors.supplierColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: currentSupplier.id,
+                    dropdownColor: AppColors.surfaceDark,
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.supplierColor),
+                    isDense: true,
+                    isExpanded: true,
+                    style: const TextStyle(
+                      color: AppColors.textPrimaryDark,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    onChanged: (newId) async {
+                      if (newId == 'create_new') {
+                        _showCreateBusinessDialog(context, ref);
+                      } else if (newId != null) {
+                        ref.read(selectedSupplierIdProvider.notifier).state = newId;
+                        ref.invalidate(myServicesProvider);
+                        ref.invalidate(recentOrdersProvider);
+                        ref.invalidate(supplierStatsProvider);
+                        ref.invalidate(currentSupplierProvider);
+                      }
+                    },
+                    items: [
+                      ...suppliers.map(
+                        (s) => DropdownMenuItem(
+                          value: s.id,
+                          child: Text(
+                            s.businessName.isEmpty ? 'My Business' : s.businessName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'create_new',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add, color: AppColors.supplierColor, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Create New Business',
+                              style: TextStyle(color: AppColors.supplierColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  void _showCreateBusinessDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surfaceDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text('Create New Business', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Enter a name for your new business profile.',
+                    style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    style: const TextStyle(color: AppColors.textPrimaryDark),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Elite Catering Co.',
+                      hintStyle: const TextStyle(color: AppColors.textMutedDark),
+                      filled: true,
+                      fillColor: AppColors.cardDark,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (controller.text.trim().isEmpty) return;
+                          setState(() => isLoading = true);
+                          
+                          try {
+                            await createBusinessProfile(ref, controller.text.trim());
+                            if (context.mounted) Navigator.pop(context);
+                          } finally {
+                            if (context.mounted) setState(() => isLoading = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.supplierColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1101,6 +1281,8 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
   late final TextEditingController _priceController;
   String _selectedCategory = ServiceCategories.all.first;
   String _selectedPriceUnit = PriceUnits.perEvent;
+  List<String> _existingImages = [];
+  List<XFile> _newImages = [];
   bool _isLoading = false;
 
   @override
@@ -1114,6 +1296,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     if (widget.service != null) {
       _selectedCategory = widget.service!.category;
       _selectedPriceUnit = widget.service!.priceUnit ?? PriceUnits.perEvent;
+      _existingImages = List.from(widget.service!.images);
     }
   }
 
@@ -1125,14 +1308,58 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     super.dispose();
   }
 
+  Future<void> _pickImages() async {
+    final picker = ImagePicker();
+    final images = await picker.pickMultiImage(imageQuality: 80, maxWidth: 1920);
+    if (images.isNotEmpty) {
+      setState(() {
+        _newImages.addAll(images);
+      });
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Images are now optional. Proceed to loading state directly.
 
     setState(() => _isLoading = true);
 
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       setState(() => _isLoading = false);
+      return;
+    }
+    
+    // Upload images conceptually tied to supplier
+    final uploadService = ref.read(imageUploadServiceProvider);
+    List<String> finalUrls = [..._existingImages];
+    
+    try {
+      for (final file in _newImages) {
+        if (kIsWeb) {
+          final bytes = await file.readAsBytes();
+          final result = await uploadService.uploadImageFromBytes(
+            bytes: bytes,
+            storagePath: '${StoragePaths.supplierImages}/$userId',
+            fileName: file.name,
+          );
+          finalUrls.add(result.url);
+        } else {
+          final result = await uploadService.uploadSupplierImage(
+            file: File(file.path),
+            supplierId: userId,
+          );
+          finalUrls.add(result.url);
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload images: $e'), backgroundColor: AppColors.error),
+        );
+      }
       return;
     }
 
@@ -1145,6 +1372,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
       price: double.tryParse(_priceController.text) ?? 0,
       priceUnit: _selectedPriceUnit,
       createdAt: widget.service?.createdAt ?? DateTime.now(),
+      images: finalUrls,
     );
 
     bool success;
@@ -1158,7 +1386,9 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
           .createService(service);
     }
 
-    setState(() => _isLoading = false);
+    if (mounted) {
+       setState(() => _isLoading = false);
+    }
 
     if (success && mounted) {
       Navigator.pop(context);
@@ -1167,18 +1397,15 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
           content: Text(widget.service != null
               ? 'Service updated successfully'
               : 'Service created successfully'),
-          backgroundColor: AppColors.success,
+           backgroundColor: AppColors.success,
         ),
       );
     } else if (mounted) {
-      final errorState = ref.read(serviceManagementProvider);
-      final errorMessage = errorState.error?.toString() ?? 'Failed to perform operation';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: AppColors.error,
-        ),
-      );
+       final errorState = ref.read(serviceManagementProvider);
+       final errorMessage = errorState.error?.toString() ?? 'Failed to perform operation';
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: AppColors.error),
+       );
     }
   }
 
@@ -1222,14 +1449,108 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
             ),
           ),
           const Divider(color: AppColors.grey700, height: 1),
+          // We wrap Expanded with a conditional loading shield if you want, or just disable buttons.
           Expanded(
-            child: SingleChildScrollView(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: AppColors.supplierColor))
+              : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // --- Images Picker UI ---
+                    const Text('Service Images (Optional)', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 100,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          // Add Button
+                          GestureDetector(
+                            onTap: _pickImages,
+                            child: Container(
+                              width: 100,
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceDark,
+                                border: Border.all(color: AppColors.supplierColor.withOpacity(0.5)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate, color: AppColors.supplierColor),
+                                  SizedBox(height: 4),
+                                  Text('Add Photo', style: TextStyle(color: AppColors.supplierColor, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Existing URLs
+                          ..._existingImages.asMap().entries.map((entry) {
+                             return Stack(
+                               children: [
+                                 Container(
+                                   width: 100,
+                                   margin: const EdgeInsets.only(right: 12),
+                                   decoration: BoxDecoration(
+                                     borderRadius: BorderRadius.circular(12),
+                                     image: DecorationImage(image: NetworkImage(entry.value), fit: BoxFit.cover),
+                                   ),
+                                 ),
+                                 Positioned(
+                                   top: 4, right: 16,
+                                   child: GestureDetector(
+                                     onTap: () => setState(() => _existingImages.removeAt(entry.key)),
+                                     child: Container(
+                                       padding: const EdgeInsets.all(4),
+                                       decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                       child: const Icon(Icons.close, color: Colors.white, size: 14),
+                                     ),
+                                   ),
+                                 ),
+                               ],
+                             );
+                          }),
+                          // New Local Files
+                          ..._newImages.asMap().entries.map((entry) {
+                             return Stack(
+                               children: [
+                                 Container(
+                                   width: 100,
+                                   margin: const EdgeInsets.only(right: 12),
+                                   decoration: BoxDecoration(
+                                     borderRadius: BorderRadius.circular(12),
+                                     image: DecorationImage(
+                                       image: kIsWeb 
+                                           ? NetworkImage(entry.value.path) 
+                                           : FileImage(File(entry.value.path)) as ImageProvider, 
+                                       fit: BoxFit.cover
+                                     ),
+                                   ),
+                                 ),
+                                 Positioned(
+                                   top: 4, right: 16,
+                                   child: GestureDetector(
+                                     onTap: () => setState(() => _newImages.removeAt(entry.key)),
+                                     child: Container(
+                                       padding: const EdgeInsets.all(4),
+                                       decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                       child: const Icon(Icons.close, color: Colors.white, size: 14),
+                                     ),
+                                   ),
+                                 ),
+                               ],
+                             );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
                     _buildLabel('Service Title'),
                     _buildTextField(
                       controller: _titleController,
@@ -2101,7 +2422,7 @@ class _ProfileTab extends ConsumerWidget {
               icon: Icons.store_rounded,
               title: 'Business Settings',
               subtitle: 'Manage your business details',
-              onTap: () {},
+              onTap: () => context.push(AppRoutes.supplierBusinessSettings),
             ),
             _ProfileMenuItem(
               icon: Icons.analytics_rounded,

@@ -26,6 +26,7 @@ import '../features/organizer/presentation/screens/manage_booths_screen.dart';
 import '../features/organizer/presentation/screens/create_booth_screen.dart';
 import '../features/organizer/presentation/screens/edit_booth_screen.dart';
 import '../features/supplier/presentation/screens/supplier_dashboard_screen.dart';
+import '../features/supplier/presentation/screens/business_settings_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/events/presentation/screens/events_screen.dart';
 import '../features/events/presentation/screens/event_detail_screen.dart';
@@ -218,6 +219,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.supplierDashboard,
         builder: (context, state) => const SupplierDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.supplierBusinessSettings,
+        builder: (context, state) => const BusinessSettingsScreen(),
       ),
 
       // Events Routes (accessible to all authenticated users)

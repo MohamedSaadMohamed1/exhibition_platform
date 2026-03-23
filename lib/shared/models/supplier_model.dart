@@ -52,7 +52,7 @@ class SupplierModel {
       services: (json['services'] as List<dynamic>?)?.cast<String>() ?? [],
       category: json['category'] as String?,
       images: (json['images'] as List<dynamic>?)?.cast<String>() ?? [],
-      ownerId: json['ownerId'] as String? ?? '',
+      ownerId: json['ownerId'] as String? ?? json['userId'] as String? ?? '',
       ownerName: json['ownerName'] as String?,
       contactEmail: json['contactEmail'] as String?,
       contactPhone: json['contactPhone'] as String?,

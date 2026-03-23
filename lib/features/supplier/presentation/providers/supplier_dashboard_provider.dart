@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/enums.dart';
 import '../../../../shared/models/service_model.dart';
 import '../../../../shared/models/order_model.dart';
 import '../../../../shared/models/supplier_model.dart';
@@ -10,14 +11,47 @@ final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return null;
 
-  final snapshot = await FirebaseFirestore.instance
+  var snapshot = await FirebaseFirestore.instance
       .collection('suppliers')
-      .where('userId', isEqualTo: userId)
+      .where('ownerId', isEqualTo: userId)
+      .where('isActive', isEqualTo: true)
       .limit(1)
       .get();
+      
+  if (snapshot.docs.isEmpty) {
+    // Fallback for legacy database records
+    snapshot = await FirebaseFirestore.instance
+        .collection('suppliers')
+        .where('userId', isEqualTo: userId)
+        .where('isActive', isEqualTo: true)
+        .limit(1)
+        .get();
+  }
 
-  if (snapshot.docs.isEmpty) return null;
-  return SupplierModel.fromFirestore(snapshot.docs.first);
+  if (snapshot.docs.isNotEmpty) {
+    return SupplierModel.fromFirestore(snapshot.docs.first);
+  }
+
+  // AUTO-PROVISION: If the user has 'supplier' role but their supplier document is completely missing 
+  // (e.g. because admin just updated their role without filling out the Create Supplier form)
+  // we automatically provision a placeholder profile so they can use the dashboard.
+  final user = ref.watch(currentUserProvider).valueOrNull;
+  if (user != null && user.role == UserRole.supplier) {
+    final docRef = FirebaseFirestore.instance.collection('suppliers').doc();
+    final newSupplier = SupplierModel(
+      id: docRef.id,
+      name: user.name.isNotEmpty ? '${user.name}\'s Business' : 'My Business',
+      description: 'Please describe your business.',
+      ownerId: userId,
+      createdByAdmin: 'system',
+      createdAt: DateTime.now(),
+      isActive: true,
+    );
+    await docRef.set(newSupplier.toFirestore());
+    return newSupplier;
+  }
+
+  return null;
 });
 
 /// Provider for current supplier's services (stored as subcollection)
@@ -25,11 +59,9 @@ final myServicesProvider = FutureProvider<List<ServiceModel>>((ref) async {
   final supplier = await ref.watch(currentSupplierProvider.future);
   if (supplier == null) return [];
 
-  // Services stored as subcollection under supplier
   final snapshot = await FirebaseFirestore.instance
-      .collection('suppliers')
-      .doc(supplier.id)
       .collection('services')
+      .where('supplierId', isEqualTo: supplier.id)
       .orderBy('createdAt', descending: true)
       .get();
 
@@ -57,11 +89,10 @@ final supplierStatsProvider = FutureProvider<SupplierDashboardStats>((ref) async
 
   final firestore = FirebaseFirestore.instance;
 
-  // Get services count from subcollection
+  // Get services count from root collection
   final servicesSnapshot = await firestore
-      .collection('suppliers')
-      .doc(supplier.id)
       .collection('services')
+      .where('supplierId', isEqualTo: supplier.id)
       .where('isActive', isEqualTo: true)
       .count()
       .get();
@@ -142,14 +173,12 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
 
   ServiceManagementNotifier(this.ref) : super(const AsyncValue.data(null));
 
-  /// Get the services subcollection reference for current supplier
+  /// Get the services collection reference for current supplier
   Future<CollectionReference<Map<String, dynamic>>?> _getServicesCollection() async {
     final supplier = await ref.read(currentSupplierProvider.future);
     if (supplier == null) return null;
 
     return FirebaseFirestore.instance
-        .collection('suppliers')
-        .doc(supplier.id)
         .collection('services');
   }
 

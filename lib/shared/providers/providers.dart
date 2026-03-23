@@ -23,7 +23,8 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
 
 /// Current User ID Provider
 final currentUserIdProvider = Provider<String?>((ref) {
-  return ref.watch(firebaseUserProvider).valueOrNull?.uid;
+  final streamUser = ref.watch(firebaseUserProvider).valueOrNull;
+  return streamUser?.uid ?? FirebaseAuth.instance.currentUser?.uid;
 });
 
 /// Is Authenticated Provider

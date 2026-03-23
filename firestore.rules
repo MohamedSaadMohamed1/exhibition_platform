@@ -193,8 +193,8 @@ service cloud.firestore {
       allow read: if isAuthenticated()
         && (resource.data.isActive == true || resource.data.ownerId == currentUserId() || isAdmin());
 
-      // Only admin can create suppliers
-      allow create: if isAdmin();
+      // Only admin can create suppliers, or suppliers can auto-provision their own profile
+      allow create: if isAdmin() || (isSupplier() && request.resource.data.ownerId == currentUserId());
 
       // Supplier owner can update their own profile
       allow update: if isAuthenticated()
@@ -203,6 +203,20 @@ service cloud.firestore {
 
       // Only admin can delete
       allow delete: if isAdmin();
+    }
+
+    // ========================
+    // SERVICES COLLECTION
+    // ========================
+    match /services/{serviceId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ========================
+    // ORDERS COLLECTION
+    // ========================
+    match /orders/{orderId} {
+      allow read, write: if isAuthenticated();
     }
 
     // ========================

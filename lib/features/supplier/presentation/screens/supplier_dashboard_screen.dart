@@ -1168,6 +1168,15 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
           backgroundColor: AppColors.success,
         ),
       );
+    } else if (mounted) {
+      final errorState = ref.read(serviceManagementProvider);
+      final errorMessage = errorState.error?.toString() ?? 'Failed to perform operation';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 

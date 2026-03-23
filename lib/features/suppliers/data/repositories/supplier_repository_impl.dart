@@ -98,10 +98,20 @@ class SupplierRepositoryImpl implements SupplierRepository {
   @override
   Future<Either<Failure, SupplierModel?>> getSupplierByUserId(String userId) async {
     try {
-      final snapshot = await _suppliersCollection
-          .where('userId', isEqualTo: userId)
+      var snapshot = await _suppliersCollection
+          .where('ownerId', isEqualTo: userId)
+          .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
+
+      if (snapshot.docs.isEmpty) {
+        // Fallback for legacy database records
+        snapshot = await _suppliersCollection
+            .where('userId', isEqualTo: userId)
+            .where('isActive', isEqualTo: true)
+            .limit(1)
+            .get();
+      }
 
       if (snapshot.docs.isEmpty) {
         return const Right(null);
@@ -277,10 +287,10 @@ class SupplierRepositoryImpl implements SupplierRepository {
     int limit = 20,
   }) async {
     try {
-      // Services are stored as a subcollection under each supplier
-      final snapshot = await _suppliersCollection
-          .doc(supplierId)
-          .collection('services')
+      // Services are stored in the root services collection
+      final snapshot = await _firestore
+          .collection(FirestoreCollections.services)
+          .where('supplierId', isEqualTo: supplierId)
           .where('isActive', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)

@@ -415,6 +415,7 @@ class _SuppliersTab extends ConsumerStatefulWidget {
 
 class _SuppliersTabState extends ConsumerState<_SuppliersTab> {
   String _selectedCategory = 'All';
+  final ScrollController _scrollController = ScrollController();
 
   final List<String> _categories = [
     'All',
@@ -425,133 +426,153 @@ class _SuppliersTabState extends ConsumerState<_SuppliersTab> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(suppliersNotifierProvider.notifier).loadMore();
+    }
+  }
+
+  void _onCategorySelected(String category) {
+    if (_selectedCategory == category) return;
+    
+    setState(() {
+      _selectedCategory = category;
+    });
+
+    if (category == 'All') {
+      ref.read(suppliersNotifierProvider.notifier).clearFilter();
+    } else {
+      ref.read(suppliersNotifierProvider.notifier).applyFilter(
+            SupplierFilter(category: category),
+          );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final suppliersState = ref.watch(suppliersNotifierProvider);
-    final featuredSuppliersAsync = ref.watch(featuredSuppliersProvider);
+    final displaySuppliers = suppliersState.suppliers;
 
-    return featuredSuppliersAsync.when(
-      data: (featuredSuppliers) {
-        var displaySuppliers = featuredSuppliers.isNotEmpty
-            ? featuredSuppliers
-            : suppliersState.suppliers;
-
-        // Filter by category if not 'All'
-        if (_selectedCategory != 'All') {
-          displaySuppliers = displaySuppliers
-              .where((s) =>
-                  s.category?.toLowerCase() ==
-                  _selectedCategory.toLowerCase())
-              .toList();
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(featuredSuppliersProvider);
-            await ref.read(suppliersNotifierProvider.notifier).refresh();
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                // Title
-                const Text(
-                  'Explore Suppliers',
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Category Filter Tabs with underline
-                SizedBox(
-                  height: 36,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _categories.length,
-                    itemBuilder: (context, index) {
-                      final category = _categories[index];
-                      final isSelected = _selectedCategory == category;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 24),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategory = category;
-                            });
-                          },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                category,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textSecondaryDark,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              // Underline indicator
-                              Container(
-                                height: 2,
-                                width: isSelected ? 24 : 0,
-                                decoration: BoxDecoration(
-                                  color: AppColors.textPrimaryDark,
-                                  borderRadius: BorderRadius.circular(1),
-                                ),
-                              ),
-                            ],
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(suppliersNotifierProvider.notifier).refresh();
+      },
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            // Title
+            const Text(
+              'Explore Suppliers',
+              style: TextStyle(
+                color: AppColors.textPrimaryDark,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Category Filter Tabs with underline
+            SizedBox(
+              height: 36,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final category = _categories[index];
+                  final isSelected = _selectedCategory == category;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 24),
+                    child: GestureDetector(
+                      onTap: () => _onCategorySelected(category),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            category,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textSecondaryDark,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              fontSize: 15,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Suppliers List
-                if (displaySuppliers.isEmpty && !suppliersState.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(
-                        'No suppliers found in this category',
-                        style: TextStyle(
-                          color: AppColors.textSecondaryDark,
-                          fontSize: 14,
-                        ),
+                          const SizedBox(height: 8),
+                          // Underline indicator
+                          Container(
+                            height: 2,
+                            width: isSelected ? 24 : 0,
+                            decoration: BoxDecoration(
+                              color: AppColors.textPrimaryDark,
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: displaySuppliers.length,
-                    itemBuilder: (context, index) {
-                      final supplier = displaySuppliers[index];
-                      return _SupplierCard(
-                        supplier: supplier,
-                        onTap: () => context.push('/suppliers/${supplier.id}'),
-                      );
-                    },
-                  ),
-                const SizedBox(height: 100),
-              ],
+                  );
+                },
+              ),
             ),
-          ),
-        );
-      },
-      loading: () => const LoadingWidget(),
-      error: (error, _) => AppErrorWidget(
-        message: 'Failed to load suppliers',
-        onRetry: () => ref.invalidate(featuredSuppliersProvider),
+            const SizedBox(height: 16),
+            // Suppliers List
+            if (displaySuppliers.isEmpty && !suppliersState.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    'No suppliers found in this category',
+                    style: TextStyle(
+                      color: AppColors.textSecondaryDark,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: displaySuppliers.length,
+                itemBuilder: (context, index) {
+                  final supplier = displaySuppliers[index];
+                  return _SupplierCard(
+                    supplier: supplier,
+                    onTap: () => context.push('/suppliers/${supplier.id}'),
+                  );
+                },
+              ),
+            if (suppliersState.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 100),
+          ],
+        ),
       ),
     );
   }

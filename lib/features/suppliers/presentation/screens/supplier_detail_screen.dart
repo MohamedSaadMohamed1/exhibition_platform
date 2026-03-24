@@ -328,42 +328,118 @@ class SupplierDetailScreen extends ConsumerWidget {
         data: (supplier) {
           if (supplier == null || currentUser == null) return null;
 
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+          // Don't show contact button if looking at own profile
+          if (currentUser.id == supplier.userId) {
+            return Container(
+              padding: const EdgeInsets.all(16),
               color: AppColors.surfaceDark,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
+              child: const SafeArea(
+                child: Text(
+                  'This is your business profile',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondaryDark),
                 ),
-              ],
-            ),
-            child: SafeArea(
-              child: AppButton(
-                text: 'Contact Supplier',
-                icon: Icons.chat,
-                onPressed: () async {
+              ),
+            );
+          }
+
+          return _ContactSupplierButton(
+            currentUser: currentUser,
+            supplier: supplier,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ContactSupplierButton extends StatefulWidget {
+  final dynamic currentUser;
+  final dynamic supplier;
+
+  const _ContactSupplierButton({
+    required this.currentUser,
+    required this.supplier,
+  });
+
+  @override
+  State<_ContactSupplierButton> createState() => _ContactSupplierButtonState();
+}
+
+class _ContactSupplierButtonState extends State<_ContactSupplierButton> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: AppButton(
+              text: 'Contact Supplier',
+              icon: Icons.chat,
+              isLoading: _isLoading,
+              onPressed: () async {
+                if (widget.supplier.userId.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('This supplier cannot be contacted at this moment.'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+
+                setState(() => _isLoading = true);
+                try {
                   // Create or get chat
                   final chatResult = await ref.read(getOrCreateChatProvider((
-                    currentUserId: currentUser.id,
-                    otherUserId: supplier.userId,
-                    currentUserName: currentUser.name,
-                    otherUserName: supplier.businessName,
-                    currentUserImage: currentUser.profileImage,
-                    otherUserImage: supplier.profileImage,
+                    currentUserId: widget.currentUser.id,
+                    otherUserId: widget.supplier.userId,
+                    currentUserName: widget.currentUser.name,
+                    otherUserName: widget.supplier.businessName,
+                    currentUserImage: widget.currentUser.profileImage,
+                    otherUserImage: widget.supplier.profileImage,
                   )).future);
 
                   if (chatResult != null && context.mounted) {
                     context.push('/chats/${chatResult.id}');
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to create chat. Please try again.'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
                   }
-                },
-              ),
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                } finally {
+                  if (mounted) setState(() => _isLoading = false);
+                }
+              },
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

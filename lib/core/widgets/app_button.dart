@@ -26,7 +26,7 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.width,
     this.height = 52,
-    this.borderRadius = 12,
+    this.borderRadius = 50,
   });
 
   @override
@@ -54,16 +54,32 @@ class AppButton extends StatelessWidget {
 
     switch (style) {
       case AppButtonStyle.primary:
-        return ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: onPressed != null && !isLoading
+                ? AppColors.primaryGradient
+                : null,
+            color: onPressed == null || isLoading ? AppColors.grey400 : null,
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: onPressed != null && !isLoading
+                ? AppColors.elevatedShadow
+                : null,
           ),
-          child: child,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              foregroundColor: AppColors.white,
+              overlayColor: Colors.white.withOpacity(0.15),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+            ),
+            child: child,
+          ),
         );
 
       case AppButtonStyle.secondary:
@@ -120,6 +136,11 @@ class AppButton extends StatelessWidget {
   }
 
   Widget _buildContent() {
+    final label = Text(
+      text,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+    );
     if (icon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -127,11 +148,11 @@ class AppButton extends StatelessWidget {
         children: [
           Icon(icon, size: 20),
           const SizedBox(width: 8),
-          Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+          Flexible(child: label),
         ],
       );
     }
-    return Text(text, overflow: TextOverflow.ellipsis);
+    return label;
   }
 
   Color _getLoadingColor() {

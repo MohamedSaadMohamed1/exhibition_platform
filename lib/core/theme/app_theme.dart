@@ -54,10 +54,10 @@ class AppTheme {
           foregroundColor: AppColors.white,
           minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(50),
           ),
           textStyle: AppTypography.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -67,10 +67,10 @@ class AppTheme {
           minimumSize: const Size(double.infinity, 52),
           side: const BorderSide(color: AppColors.primary),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(50),
           ),
           textStyle: AppTypography.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -78,7 +78,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           textStyle: AppTypography.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -216,8 +216,9 @@ class AppTheme {
           foregroundColor: AppColors.white,
           minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(50),
           ),
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

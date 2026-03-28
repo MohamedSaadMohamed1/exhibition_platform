@@ -117,8 +117,6 @@ class ChatMessagesNotifier extends FamilyNotifier<MessagesState, String> {
   }
 
   Future<void> _loadMessages(String chatId, {bool loadMore = false}) async {
-    if (state.isLoading && !loadMore) return;
-
     state = state.copyWith(
       isLoading: true,
       errorMessage: null,
@@ -225,6 +223,13 @@ final unreadCountStreamProvider =
     StreamProvider.family<int, String>((ref, userId) {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.watchUnreadCount(userId);
+});
+
+/// Single chat stream provider
+final chatStreamProvider =
+    StreamProvider.family<ChatModel?, String>((ref, chatId) {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.watchChat(chatId);
 });
 
 /// Get or create chat provider

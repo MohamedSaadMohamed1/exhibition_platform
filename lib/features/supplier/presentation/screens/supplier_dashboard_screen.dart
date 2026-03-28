@@ -16,7 +16,7 @@ import '../../../../shared/widgets/role_dashboard_shell.dart';
 import '../../../../core/services/image_upload_service.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../chat/presentation/screens/chats_screen.dart' show userChatsProvider;
+import '../../../chat/presentation/providers/chat_provider.dart' show userChatsStreamProvider;
 import '../providers/supplier_dashboard_provider.dart';
 
 class SupplierDashboardScreen extends ConsumerStatefulWidget {
@@ -2119,8 +2119,8 @@ class _MessagesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chatsAsync = ref.watch(userChatsProvider);
     final currentUserId = ref.watch(currentUserIdProvider);
+    final chatsAsync = ref.watch(userChatsStreamProvider(currentUserId ?? ''));
 
     return SafeArea(
       child: Column(

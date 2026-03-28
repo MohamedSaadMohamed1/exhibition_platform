@@ -157,13 +157,21 @@ service cloud.firestore {
     // CHATS COLLECTION
     // ========================
     match /chats/{chatId} {
-      // Only participants can read/write
-      allow read, write: if isAuthenticated()
+      // Allow reading existing chats (participants only) or checking if a chat exists (resource == null)
+      allow get: if isAuthenticated()
+        && (resource == null || currentUserId() in resource.data.participants);
+
+      // Allow listing chats (participants only)
+      allow list: if isAuthenticated()
         && currentUserId() in resource.data.participants;
 
       // Allow create if user is one of the participants
       allow create: if isAuthenticated()
         && currentUserId() in request.resource.data.participants;
+
+      // Allow update/delete for participants only
+      allow update, delete: if isAuthenticated()
+        && currentUserId() in resource.data.participants;
 
       // ========================
       // MESSAGES SUBCOLLECTION

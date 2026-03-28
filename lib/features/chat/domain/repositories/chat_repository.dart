@@ -42,6 +42,8 @@ abstract class ChatRepository {
 
   Stream<List<ChatModel>> watchUserChats(String userId);
 
+  Stream<ChatModel?> watchChat(String chatId);
+
   Stream<List<MessageModel>> watchMessages(String chatId);
 
   Stream<int> watchUnreadCount(String userId);

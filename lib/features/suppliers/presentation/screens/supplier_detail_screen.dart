@@ -6,6 +6,7 @@ import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../shared/models/service_model.dart';
+import '../../../../shared/models/order_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../chat/presentation/providers/chat_provider.dart';
 import '../../../services/presentation/providers/service_provider.dart';
@@ -27,6 +28,7 @@ class SupplierDetailScreen extends ConsumerWidget {
       type: ReviewType.supplier,
     )));
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final services = servicesAsync.maybeWhen(data: (s) => s, orElse: () => <ServiceModel>[]);
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldDark,
@@ -346,6 +348,7 @@ class SupplierDetailScreen extends ConsumerWidget {
           return _ContactSupplierButton(
             currentUser: currentUser,
             supplier: supplier,
+            services: services,
           );
         },
       ),
@@ -353,93 +356,339 @@ class SupplierDetailScreen extends ConsumerWidget {
   }
 }
 
-class _ContactSupplierButton extends StatefulWidget {
+class _ContactSupplierButton extends StatelessWidget {
   final dynamic currentUser;
   final dynamic supplier;
+  final List<ServiceModel> services;
 
   const _ContactSupplierButton({
     required this.currentUser,
     required this.supplier,
+    required this.services,
   });
 
   @override
-  State<_ContactSupplierButton> createState() => _ContactSupplierButtonState();
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: AppButton(
+          text: 'Request Service',
+          icon: Icons.handshake_outlined,
+          onPressed: () {
+            if (supplier.userId.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This supplier cannot be contacted at this moment.'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
+
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => _RequestServiceBottomSheet(
+                currentUser: currentUser,
+                supplier: supplier,
+                services: services,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
-class _ContactSupplierButtonState extends State<_ContactSupplierButton> {
+class _RequestServiceBottomSheet extends ConsumerStatefulWidget {
+  final dynamic currentUser;
+  final dynamic supplier;
+  final List<ServiceModel> services;
+
+  const _RequestServiceBottomSheet({
+    required this.currentUser,
+    required this.supplier,
+    required this.services,
+  });
+
+  @override
+  ConsumerState<_RequestServiceBottomSheet> createState() =>
+      _RequestServiceBottomSheetState();
+}
+
+class _RequestServiceBottomSheetState
+    extends ConsumerState<_RequestServiceBottomSheet> {
+  final _notesController = TextEditingController();
+  final _budgetController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  ServiceModel? _selectedService;
   bool _isLoading = false;
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, child) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: AppButton(
-              text: 'Contact Supplier',
-              icon: Icons.chat,
-              isLoading: _isLoading,
-              onPressed: () async {
-                if (widget.supplier.userId.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('This supplier cannot be contacted at this moment.'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  return;
-                }
+  void dispose() {
+    _notesController.dispose();
+    _budgetController.dispose();
+    super.dispose();
+  }
 
-                setState(() => _isLoading = true);
-                try {
-                  // Create or get chat
-                  final chatResult = await ref.read(getOrCreateChatProvider((
-                    currentUserId: widget.currentUser.id,
-                    otherUserId: widget.supplier.userId,
-                    currentUserName: widget.currentUser.name,
-                    otherUserName: widget.supplier.businessName,
-                    currentUserImage: widget.currentUser.profileImage,
-                    otherUserImage: widget.supplier.profileImage,
-                  )).future);
+  String _buildRequestMessage(String serviceName, String notes, String budget) {
+    final buffer = StringBuffer();
+    buffer.writeln('🔧 Service Request');
+    buffer.writeln();
+    buffer.writeln('Service: $serviceName');
+    if (budget.isNotEmpty) {
+      buffer.writeln('Budget: \$$budget');
+    } else {
+      buffer.writeln('Budget: Flexible');
+    }
+    buffer.writeln();
+    buffer.writeln('Notes: $notes');
+    return buffer.toString().trim();
+  }
 
-                  if (chatResult != null && context.mounted) {
-                    context.push('/chats/${chatResult.id}');
-                  } else if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to create chat. Please try again.'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                  }
-                } finally {
-                  if (mounted) setState(() => _isLoading = false);
-                }
-              },
-            ),
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final serviceName =
+          _selectedService?.title ?? 'General Inquiry';
+      final notes = _notesController.text.trim();
+      final budget = _budgetController.text.trim();
+      final totalPrice = double.tryParse(budget) ?? 0.0;
+
+      // 1. Create order
+      final order = OrderModel(
+        id: '',
+        serviceId: _selectedService?.id ?? '',
+        supplierId: widget.supplier.id,
+        customerId: widget.currentUser.id,
+        serviceName: serviceName,
+        supplierName: widget.supplier.businessName,
+        customerName: widget.currentUser.name,
+        customerPhone: widget.currentUser.phone,
+        notes: notes,
+        totalPrice: totalPrice,
+        status: OrderStatus.pending,
+        createdAt: DateTime.now(),
+      );
+
+      final orderResult =
+          await ref.read(orderRepositoryProvider).createOrder(order);
+
+      orderResult.fold(
+        (failure) => throw Exception(failure.message),
+        (_) {},
+      );
+
+      // 2. Create or get chat
+      final chatResult = await ref.read(getOrCreateChatProvider((
+        currentUserId: widget.currentUser.id,
+        otherUserId: widget.supplier.userId,
+        currentUserName: widget.currentUser.name,
+        otherUserName: widget.supplier.businessName,
+        currentUserImage: widget.currentUser.profileImage,
+        otherUserImage: widget.supplier.profileImage,
+      )).future);
+
+      if (chatResult == null) throw Exception('Failed to create chat');
+
+      // 3. Auto-send request details as first message
+      await ref.read(chatRepositoryProvider).sendMessage(
+            chatId: chatResult.id,
+            senderId: widget.currentUser.id,
+            text: _buildRequestMessage(serviceName, notes, budget),
+          );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        context.push('/chats/${chatResult.id}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
           ),
         );
-      },
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grey600,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Title
+            Text(
+              'Request from ${widget.supplier.businessName}',
+              style: const TextStyle(
+                color: AppColors.textPrimaryDark,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Service selector
+            if (widget.services.isNotEmpty) ...[
+              const Text(
+                'Service',
+                style: TextStyle(
+                  color: AppColors.textSecondaryDark,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<ServiceModel?>(
+                    value: _selectedService,
+                    isExpanded: true,
+                    dropdownColor: AppColors.cardDark,
+                    hint: const Text(
+                      'General Inquiry',
+                      style: TextStyle(color: AppColors.textSecondaryDark),
+                    ),
+                    items: [
+                      const DropdownMenuItem<ServiceModel?>(
+                        value: null,
+                        child: Text(
+                          'General Inquiry',
+                          style: TextStyle(color: AppColors.textPrimaryDark),
+                        ),
+                      ),
+                      ...widget.services.map((s) => DropdownMenuItem<ServiceModel?>(
+                            value: s,
+                            child: Text(
+                              s.title,
+                              style: const TextStyle(
+                                  color: AppColors.textPrimaryDark),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _selectedService = value),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // Notes field
+            const Text(
+              'Message *',
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _notesController,
+              maxLines: 4,
+              style: const TextStyle(color: AppColors.textPrimaryDark),
+              decoration: InputDecoration(
+                hintText: 'Describe what you need...',
+                hintStyle:
+                    const TextStyle(color: AppColors.textSecondaryDark),
+                filled: true,
+                fillColor: AppColors.cardDark,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Message is required' : null,
+            ),
+            const SizedBox(height: 16),
+            // Budget field
+            const Text(
+              'Budget (optional)',
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _budgetController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: AppColors.textPrimaryDark),
+              decoration: InputDecoration(
+                hintText: 'e.g. 500',
+                prefixText: '\$ ',
+                prefixStyle:
+                    const TextStyle(color: AppColors.textSecondaryDark),
+                hintStyle:
+                    const TextStyle(color: AppColors.textSecondaryDark),
+                filled: true,
+                fillColor: AppColors.cardDark,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Submit button
+            AppButton(
+              text: 'Send Request',
+              icon: Icons.send,
+              isLoading: _isLoading,
+              onPressed: _submit,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

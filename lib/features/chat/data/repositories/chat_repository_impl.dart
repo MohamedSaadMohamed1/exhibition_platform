@@ -55,6 +55,7 @@ class ChatRepositoryImpl implements ChatRepository {
           otherUserId: 0,
         },
         createdAt: DateTime.now(),
+        lastMessageAt: DateTime.now(),
       );
 
       await _chatsCollection.doc(chatId).set(chat.toFirestore());
@@ -137,29 +138,28 @@ class ChatRepositoryImpl implements ChatRepository {
         createdAt: DateTime.now(),
       );
 
-      // Use transaction to send message and update chat
-      await _firestore.runTransaction((transaction) async {
-        // Create message
-        transaction.set(
-          _messagesCollection(chatId).doc(messageId),
-          message.toFirestore(),
-        );
+      // Fetch chat participants first (regular get, outside batch)
+      final chatDoc = await _chatsCollection.doc(chatId).get();
+      final participants = List<String>.from(chatDoc.data()!['participants']);
+      final otherUserId = participants.firstWhere((id) => id != senderId);
 
-        // Get chat to find other participant
-        final chatDoc = await transaction.get(_chatsCollection.doc(chatId));
-        final chatData = chatDoc.data()!;
-        final participants = List<String>.from(chatData['participants']);
-        final otherUserId = participants.firstWhere((id) => id != senderId);
+      // Use batch write (atomic, no read needed inside)
+      final batch = _firestore.batch();
 
-        // Update chat with last message
-        transaction.update(_chatsCollection.doc(chatId), {
-          'lastMessage': text,
-          'lastMessageAt': FieldValue.serverTimestamp(),
-          'lastMessageBy': senderId,
-          'unreadCount.$otherUserId': FieldValue.increment(1),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      batch.set(
+        _messagesCollection(chatId).doc(messageId),
+        message.toFirestore(),
+      );
+
+      batch.update(_chatsCollection.doc(chatId), {
+        'lastMessage': text,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'lastMessageBy': senderId,
+        'unreadCount.$otherUserId': FieldValue.increment(1),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      await batch.commit();
 
       return Right(message);
     } catch (e) {
@@ -182,6 +182,7 @@ class ChatRepositoryImpl implements ChatRepository {
       // Mark messages as read
       final unreadMessages = await _messagesCollection(chatId)
           .where('senderId', isNotEqualTo: userId)
+          .limit(100)
           .get();
 
       final batch = _firestore.batch();
@@ -234,6 +235,14 @@ class ChatRepositoryImpl implements ChatRepository {
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList();
+    });
+  }
+
+  @override
+  Stream<ChatModel?> watchChat(String chatId) {
+    return _chatsCollection.doc(chatId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return ChatModel.fromFirestore(doc);
     });
   }
 

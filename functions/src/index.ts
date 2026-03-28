@@ -19,28 +19,42 @@ interface NotificationPayload {
 
 async function sendPushNotification(payload: NotificationPayload): Promise<void> {
   try {
-    // Get user's FCM token
+    // Get user's FCM tokens (support both single token and array)
     const userDoc = await db.collection('users').doc(payload.userId).get();
-    const fcmToken = userDoc.data()?.fcmToken;
+    const userData = userDoc.data();
 
-    if (!fcmToken) {
-      console.log(`No FCM token for user ${payload.userId}`);
+    if (!userData) {
+      console.log(`User ${payload.userId} not found`);
       return;
     }
 
-    // Send push notification
-    await messaging.send({
-      token: fcmToken,
+    // Collect all valid tokens
+    const tokens: string[] = [];
+    if (userData.fcmToken && typeof userData.fcmToken === 'string') {
+      tokens.push(userData.fcmToken);
+    }
+    if (Array.isArray(userData.fcmTokens)) {
+      for (const t of userData.fcmTokens) {
+        if (typeof t === 'string' && !tokens.includes(t)) tokens.push(t);
+      }
+    }
+
+    if (tokens.length === 0) {
+      console.log(`No FCM tokens for user ${payload.userId}`);
+      return;
+    }
+
+    const messageBase = {
       notification: {
         title: payload.title,
         body: payload.body,
       },
       data: payload.data,
       android: {
-        priority: 'high',
+        priority: 'high' as const,
         notification: {
-          channelId: 'default',
-          priority: 'high',
+          channelId: 'high_importance_channel',
+          priority: 'high' as const,
         },
       },
       apns: {
@@ -55,7 +69,27 @@ async function sendPushNotification(payload: NotificationPayload): Promise<void>
           },
         },
       },
+    };
+
+    // Send to all tokens, remove invalid ones
+    const response = await messaging.sendEachForMulticast({
+      tokens,
+      ...messageBase,
     });
+
+    // Remove invalid tokens from Firestore
+    const invalidTokens: string[] = [];
+    response.responses.forEach((res, idx) => {
+      if (!res.success && res.error?.code === 'messaging/registration-token-not-registered') {
+        invalidTokens.push(tokens[idx]);
+      }
+    });
+
+    if (invalidTokens.length > 0) {
+      await db.collection('users').doc(payload.userId).update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+      });
+    }
 
     // Store notification in Firestore
     await db.collection('notifications').add({
@@ -67,7 +101,7 @@ async function sendPushNotification(payload: NotificationPayload): Promise<void>
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.log(`Notification sent to user ${payload.userId}`);
+    console.log(`Notification sent to user ${payload.userId} (${response.successCount}/${tokens.length} tokens)`);
   } catch (error) {
     console.error('Error sending notification:', error);
   }

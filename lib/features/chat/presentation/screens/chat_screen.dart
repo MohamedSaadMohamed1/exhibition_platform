@@ -5,12 +5,7 @@ import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/extensions/date_extensions.dart';
 import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
-
-// Provider for messages stream
-final messagesProvider = StreamProvider.family<List<MessageModel>, String>((ref, chatId) {
-  final repository = ref.watch(chatRepositoryProvider);
-  return repository.watchMessages(chatId);
-});
+import '../providers/chat_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -59,23 +54,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() => _isSending = true);
     _messageController.clear();
 
-    await ref.read(chatRepositoryProvider).sendMessage(
+    final result = await ref.read(chatRepositoryProvider).sendMessage(
           chatId: widget.chatId,
           senderId: userId,
           text: text,
         );
 
     setState(() => _isSending = false);
+
+    result.fold(
+      (failure) {
+        _messageController.text = text;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to send message: ${failure.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      (_) {},
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(messagesProvider(widget.chatId));
+    final messagesAsync = ref.watch(chatMessagesStreamProvider(widget.chatId));
+    final chatAsync = ref.watch(chatStreamProvider(widget.chatId));
     final currentUserId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat'),
+        title: chatAsync.when(
+          data: (chat) => Text(
+            chat?.getOtherParticipantName(currentUserId ?? '') ?? 'Chat',
+          ),
+          loading: () => const Text('Chat'),
+          error: (_, __) => const Text('Chat'),
+        ),
       ),
       body: Column(
         children: [

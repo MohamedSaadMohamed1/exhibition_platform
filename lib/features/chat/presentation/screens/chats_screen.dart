@@ -8,23 +8,18 @@ import '../../../../core/extensions/date_extensions.dart';
 import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../router/routes.dart';
-
-// Provider for user chats
-final userChatsProvider = StreamProvider<List<ChatModel>>((ref) {
-  final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) return const Stream.empty();
-
-  final repository = ref.watch(chatRepositoryProvider);
-  return repository.watchUserChats(userId);
-});
+import '../providers/chat_provider.dart';
 
 class ChatsScreen extends ConsumerWidget {
   const ChatsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chatsAsync = ref.watch(userChatsProvider);
     final currentUserId = ref.watch(currentUserIdProvider);
+
+    if (currentUserId == null) return const SizedBox.shrink();
+
+    final chatsAsync = ref.watch(userChatsStreamProvider(currentUserId));
 
     return Scaffold(
       appBar: AppBar(
@@ -46,7 +41,7 @@ class ChatsScreen extends ConsumerWidget {
               final chat = chats[index];
               return _ChatListItem(
                 chat: chat,
-                currentUserId: currentUserId!,
+                currentUserId: currentUserId,
                 onTap: () => context.push(
                   AppRoutes.chat.replaceFirst(':chatId', chat.id),
                 ),

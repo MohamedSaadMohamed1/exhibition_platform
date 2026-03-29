@@ -105,19 +105,19 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                       _selectedCategory = 'Catering';
                     });
                     ref.read(suppliersNotifierProvider.notifier).applyFilter(
-                          SupplierFilter(category: 'Catering'),
+                          const SupplierFilter(category: 'Catering'),
                         );
                   },
                 ),
                 _CategoryChip(
-                  label: 'Decor',
-                  isSelected: _selectedCategory == 'Decor',
+                  label: 'Decoration',
+                  isSelected: _selectedCategory == 'Decoration',
                   onTap: () {
                     setState(() {
-                      _selectedCategory = 'Decor';
+                      _selectedCategory = 'Decoration';
                     });
                     ref.read(suppliersNotifierProvider.notifier).applyFilter(
-                          SupplierFilter(category: 'Decor'),
+                          const SupplierFilter(category: 'Decoration'),
                         );
                   },
                 ),
@@ -129,19 +129,19 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                       _selectedCategory = 'Photography';
                     });
                     ref.read(suppliersNotifierProvider.notifier).applyFilter(
-                          SupplierFilter(category: 'Photography'),
+                          const SupplierFilter(category: 'Photography'),
                         );
                   },
                 ),
                 _CategoryChip(
-                  label: 'Entertainment',
-                  isSelected: _selectedCategory == 'Entertainment',
+                  label: 'Audio & Visual',
+                  isSelected: _selectedCategory == 'Audio & Visual',
                   onTap: () {
                     setState(() {
-                      _selectedCategory = 'Entertainment';
+                      _selectedCategory = 'Audio & Visual';
                     });
                     ref.read(suppliersNotifierProvider.notifier).applyFilter(
-                          SupplierFilter(category: 'Entertainment'),
+                          const SupplierFilter(category: 'Audio & Visual'),
                         );
                   },
                 ),

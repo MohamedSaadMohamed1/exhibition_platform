@@ -29,7 +29,7 @@ class SupplierRepositoryImpl implements SupplierRepository {
       // Apply filters
       if (filter != null) {
         if (filter.category != null) {
-          query = query.where('categories', arrayContains: filter.category);
+          query = query.where('category', isEqualTo: filter.category);
         }
         if (filter.minRating != null) {
           query = query.where('rating', isGreaterThanOrEqualTo: filter.minRating);
@@ -48,13 +48,13 @@ class SupplierRepositoryImpl implements SupplierRepository {
           query = query.orderBy('rating', descending: !ascending);
           break;
         case SupplierSortBy.reviewCount:
-          query = query.orderBy('reviewsCount', descending: !ascending);
+          query = query.orderBy('reviewCount', descending: !ascending);
           break;
         case SupplierSortBy.ordersCount:
           query = query.orderBy('ordersCount', descending: !ascending);
           break;
         case SupplierSortBy.name:
-          query = query.orderBy('businessName', descending: !ascending);
+          query = query.orderBy('name', descending: !ascending);
           break;
         case SupplierSortBy.createdAt:
           query = query.orderBy('createdAt', descending: !ascending);
@@ -165,7 +165,7 @@ class SupplierRepositoryImpl implements SupplierRepository {
     try {
       final snapshot = await _suppliersCollection
           .where('isActive', isEqualTo: true)
-          .where('categories', arrayContains: category)
+          .where('category', isEqualTo: category)
           .orderBy('rating', descending: true)
           .limit(limit)
           .get();
@@ -259,7 +259,7 @@ class SupplierRepositoryImpl implements SupplierRepository {
     try {
       await _suppliersCollection.doc(supplierId).update({
         'rating': newRating,
-        'reviewsCount': totalReviews,
+        'reviewCount': totalReviews,
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return const Right(null);
@@ -319,7 +319,7 @@ class SupplierRepositoryImpl implements SupplierRepository {
         .where('isActive', isEqualTo: true);
 
     if (filter?.category != null) {
-      query = query.where('categories', arrayContains: filter!.category);
+      query = query.where('category', isEqualTo: filter!.category);
     }
 
     return query.orderBy('rating', descending: true).snapshots().map(

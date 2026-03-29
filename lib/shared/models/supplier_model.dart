@@ -19,6 +19,9 @@ class SupplierModel {
   final String createdByAdmin;
   final bool isActive;
   final bool isVerified;
+  final bool isFeatured;
+  final int ordersCount;
+  final List<String> searchKeywords;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -40,6 +43,9 @@ class SupplierModel {
     required this.createdByAdmin,
     this.isActive = true,
     this.isVerified = false,
+    this.isFeatured = false,
+    this.ordersCount = 0,
+    this.searchKeywords = const [],
     required this.createdAt,
     this.updatedAt,
   });
@@ -63,6 +69,9 @@ class SupplierModel {
       createdByAdmin: json['createdByAdmin'] as String? ?? '',
       isActive: json['isActive'] as bool? ?? true,
       isVerified: json['isVerified'] as bool? ?? false,
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      ordersCount: json['ordersCount'] as int? ?? 0,
+      searchKeywords: (json['searchKeywords'] as List<dynamic>?)?.cast<String>() ?? [],
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: json['updatedAt'] != null ? _parseDateTime(json['updatedAt']) : null,
     );
@@ -98,6 +107,9 @@ class SupplierModel {
       'createdByAdmin': createdByAdmin,
       'isActive': isActive,
       'isVerified': isVerified,
+      'isFeatured': isFeatured,
+      'ordersCount': ordersCount,
+      'searchKeywords': searchKeywords,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
     };
@@ -111,9 +123,24 @@ class SupplierModel {
     });
   }
 
+  List<String> _buildSearchKeywords() {
+    final words = <String>{};
+    for (final w in name.toLowerCase().split(' ')) {
+      if (w.isNotEmpty) words.add(w);
+    }
+    if (category != null) words.add(category!.toLowerCase());
+    for (final s in services) {
+      for (final w in s.toLowerCase().split(' ')) {
+        if (w.isNotEmpty) words.add(w);
+      }
+    }
+    return words.toList();
+  }
+
   Map<String, dynamic> toFirestore() {
     final json = toJson();
     json.remove('id');
+    json['searchKeywords'] = _buildSearchKeywords();
     json['createdAt'] = FieldValue.serverTimestamp();
     json['updatedAt'] = FieldValue.serverTimestamp();
     return json;
@@ -127,7 +154,6 @@ class SupplierModel {
   List<String> get categories => services;
   int get reviewsCount => reviewCount;
   String? get profileImage => coverImage;
-  int get ordersCount => 0; // TODO: Add ordersCount field to model
   String get userId => ownerId;
 
   /// Check if supplier has contact info
@@ -139,6 +165,7 @@ class SupplierModel {
     final json = toJson();
     json.remove('id');
     json.remove('createdAt');
+    json['searchKeywords'] = _buildSearchKeywords();
     json['updatedAt'] = FieldValue.serverTimestamp();
     return json;
   }
@@ -161,6 +188,9 @@ class SupplierModel {
     String? createdByAdmin,
     bool? isActive,
     bool? isVerified,
+    bool? isFeatured,
+    int? ordersCount,
+    List<String>? searchKeywords,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -182,6 +212,9 @@ class SupplierModel {
       createdByAdmin: createdByAdmin ?? this.createdByAdmin,
       isActive: isActive ?? this.isActive,
       isVerified: isVerified ?? this.isVerified,
+      isFeatured: isFeatured ?? this.isFeatured,
+      ordersCount: ordersCount ?? this.ordersCount,
+      searchKeywords: searchKeywords ?? this.searchKeywords,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

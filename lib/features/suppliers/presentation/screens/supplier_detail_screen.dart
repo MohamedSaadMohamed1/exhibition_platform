@@ -22,7 +22,7 @@ class SupplierDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final supplierAsync = ref.watch(supplierProvider(supplierId));
-    final servicesAsync = ref.watch(supplierServicesListProvider(supplierId));
+    final servicesAsync = ref.watch(supplierServicesProvider(supplierId));
     final reviewStatsAsync = ref.watch(reviewStatsProvider((
       targetId: supplierId,
       type: ReviewType.supplier,
@@ -187,8 +187,7 @@ class SupplierDetailScreen extends ConsumerWidget {
                         const SizedBox(height: 20),
                       ],
                       // Description
-                      if (supplier.description != null &&
-                          supplier.description!.isNotEmpty) ...[
+                      if (supplier.description.isNotEmpty) ...[
                         const Text(
                           'About',
                           style: TextStyle(
@@ -199,7 +198,7 @@ class SupplierDetailScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          supplier.description!,
+                          supplier.description,
                           style: const TextStyle(
                             color: AppColors.textSecondaryDark,
                             height: 1.5,

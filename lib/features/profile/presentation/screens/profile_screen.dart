@@ -65,24 +65,47 @@ class ProfileScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: AppColors.primary.withOpacity(0.2),
-                      backgroundImage: currentUser.profileImage != null
-                          ? NetworkImage(currentUser.profileImage!)
-                          : null,
-                      child: currentUser.profileImage == null
-                          ? Text(
-                              currentUser.name.isNotEmpty
-                                  ? currentUser.name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontSize: 36,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withOpacity(0.2),
+                      ),
+                      child: ClipOval(
+                        child: currentUser.profileImage != null &&
+                                currentUser.profileImage!.isNotEmpty
+                            ? Image.network(
+                                currentUser.profileImage!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(
+                                    currentUser.name.isNotEmpty
+                                        ? currentUser.name[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  currentUser.name.isNotEmpty
+                                      ? currentUser.name[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            )
-                          : null,
+                      ),
                     ),
 
                     const SizedBox(height: 16),

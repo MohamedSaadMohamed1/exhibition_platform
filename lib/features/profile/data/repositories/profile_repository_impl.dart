@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -76,6 +77,25 @@ class ProfileRepositoryImpl implements ProfileRepository {
       );
 
       // Update user document with new image URL
+      await _usersCollection.doc(userId).update({
+        'profileImage': downloadUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return Right(downloadUrl);
+    } catch (e) {
+      return Left(_handleException(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadProfileImageBytes({
+    required String userId,
+    required Uint8List bytes,
+  }) async {
+    try {
+      final downloadUrl = await _storageService.uploadProfileImageData(userId, bytes);
+
       await _usersCollection.doc(userId).update({
         'profileImage': downloadUrl,
         'updatedAt': FieldValue.serverTimestamp(),

@@ -86,6 +86,23 @@ class StorageService {
     }
   }
 
+  /// Upload profile image from bytes (for web)
+  Future<String> uploadProfileImageData(String userId, Uint8List bytes) async {
+    try {
+      final storagePath = StoragePathBuilder.profileImage(userId);
+      final downloadUrl = await _storageDataSource.uploadData(
+        storagePath: storagePath,
+        data: bytes,
+        contentType: 'image/jpeg',
+      );
+      AppLogger.info('Profile image uploaded (web) for user: $userId', tag: 'Storage');
+      return downloadUrl;
+    } catch (e) {
+      AppLogger.error('Failed to upload profile image (web)', error: e, tag: 'Storage');
+      rethrow;
+    }
+  }
+
   /// Upload profile image
   Future<String> uploadProfileImage(String userId, File file) async {
     try {
@@ -230,12 +247,21 @@ class StorageService {
     }
   }
 
-  /// Delete file from storage
+  /// Delete file from storage using its download URL
   Future<void> deleteFile(String downloadUrl) async {
     try {
-      // Extract storage path from download URL
-      // This is a simplified version - actual implementation may need adjustment
-      await _storageDataSource.deleteFile(downloadUrl);
+      // Extract the storage path from the download URL
+      // Firebase download URLs have format: .../o/ENCODED_PATH?alt=media&token=...
+      final uri = Uri.parse(downloadUrl);
+      final pathSegments = uri.pathSegments;
+      // Path segment after 'o' is the encoded storage path
+      final oIndex = pathSegments.indexOf('o');
+      if (oIndex == -1 || oIndex + 1 >= pathSegments.length) {
+        AppLogger.error('Could not extract path from URL: $downloadUrl', tag: 'Storage');
+        return;
+      }
+      final storagePath = Uri.decodeComponent(pathSegments[oIndex + 1]);
+      await _storageDataSource.deleteFile(storagePath);
       AppLogger.info('File deleted', tag: 'Storage');
     } catch (e) {
       AppLogger.error('Failed to delete file', error: e, tag: 'Storage');

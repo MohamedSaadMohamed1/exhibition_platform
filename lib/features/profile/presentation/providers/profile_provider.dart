@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/providers/providers.dart';
@@ -53,7 +54,7 @@ class ProfileState {
 
 /// Profile Notifier
 class ProfileNotifier extends Notifier<ProfileState> {
-  late final ProfileRepository _profileRepository;
+  late ProfileRepository _profileRepository;
 
   @override
   ProfileState build() {
@@ -145,6 +146,35 @@ class ProfileNotifier extends Notifier<ProfileState> {
       },
       (imageUrl) {
         // Update local state with new image
+        state = state.copyWith(
+          isUploading: false,
+          uploadProgress: 1.0,
+          user: state.user?.copyWith(profileImage: imageUrl),
+          successMessage: 'Profile image updated',
+        );
+        return true;
+      },
+    );
+  }
+
+  /// Upload profile image from bytes (web)
+  Future<bool> uploadProfileImageBytes({
+    required String userId,
+    required Uint8List bytes,
+  }) async {
+    state = state.copyWith(isUploading: true, uploadProgress: 0, errorMessage: null);
+
+    final result = await _profileRepository.uploadProfileImageBytes(
+      userId: userId,
+      bytes: bytes,
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(isUploading: false, errorMessage: failure.message);
+        return false;
+      },
+      (imageUrl) {
         state = state.copyWith(
           isUploading: false,
           uploadProgress: 1.0,

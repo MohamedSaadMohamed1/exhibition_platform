@@ -7,6 +7,7 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import '../constants/app_constants.dart';
+import '../../shared/providers/firebase_providers.dart';
 
 /// Image upload result
 class ImageUploadResult {
@@ -28,9 +29,12 @@ typedef UploadProgressCallback = void Function(double progress);
 
 /// Image upload service
 class ImageUploadService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseStorage _storage;
   final ImagePicker _picker = ImagePicker();
   final Uuid _uuid = const Uuid();
+
+  ImageUploadService({FirebaseStorage? storage})
+      : _storage = storage ?? FirebaseStorage.instanceFor(bucket: 'gs://candoo-7ddfc.firebasestorage.app');
 
   /// Pick image from gallery
   Future<XFile?> pickImageFromGallery({
@@ -346,7 +350,7 @@ class ImageUploadService {
 
 /// Image upload service provider
 final imageUploadServiceProvider = Provider<ImageUploadService>((ref) {
-  return ImageUploadService();
+  return ImageUploadService(storage: ref.watch(firebaseStorageProvider));
 });
 
 /// Image picker state

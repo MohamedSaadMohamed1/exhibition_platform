@@ -25,7 +25,7 @@ final firestoreProvider = Provider<FirebaseFirestore>((ref) {
 
 /// Firebase Storage instance provider
 final firebaseStorageProvider = Provider<FirebaseStorage>((ref) {
-  return FirebaseStorage.instance;
+  return FirebaseStorage.instanceFor(bucket: 'gs://candoo-7ddfc.firebasestorage.app');
 });
 
 /// Firebase Messaging instance provider

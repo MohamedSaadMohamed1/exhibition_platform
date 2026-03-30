@@ -1,11 +1,15 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../shared/services/storage_service.dart';
+import '../../../../core/error/exceptions.dart';
 import '../providers/profile_provider.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -20,6 +24,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   File? _selectedImage;
+  Uint8List? _webImageBytes; // For web: store bytes instead of File
   bool _imageRemoved = false;
 
   @override
@@ -44,13 +49,44 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _pickImage(ImageSourceType source) async {
-    final storageService = ref.read(storageServiceProvider);
-    final file = await storageService.pickImage(source: source);
-    if (file != null) {
-      setState(() {
-        _selectedImage = file;
-        _imageRemoved = false;
-      });
+    try {
+      final imageSource = source == ImageSourceType.camera
+          ? ImageSource.camera
+          : ImageSource.gallery;
+
+      if (kIsWeb) {
+        // On web: read bytes directly — File and putFile are not supported
+        final picker = ImagePicker();
+        final xFile = await picker.pickImage(source: imageSource, imageQuality: 85);
+        if (xFile == null) return;
+        final bytes = await xFile.readAsBytes();
+        setState(() {
+          _webImageBytes = bytes;
+          _selectedImage = null;
+          _imageRemoved = false;
+        });
+      } else {
+        final storageService = ref.read(storageServiceProvider);
+        final file = await storageService.pickImage(source: source);
+        if (file != null) {
+          setState(() {
+            _selectedImage = file;
+            _webImageBytes = null;
+            _imageRemoved = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e is UploadException ? e.message : 'Failed to select image',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -160,7 +196,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     bool success = true;
 
     // Upload new image if selected
-    if (_selectedImage != null) {
+    if (kIsWeb && _webImageBytes != null) {
+      success = await profileNotifier.uploadProfileImageBytes(
+        userId: currentUser.id,
+        bytes: _webImageBytes!,
+      );
+    } else if (_selectedImage != null) {
       success = await profileNotifier.uploadProfileImage(
         userId: currentUser.id,
         imageFile: _selectedImage!,
@@ -276,22 +317,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             color: AppColors.primary.withOpacity(0.3),
                             width: 3,
                           ),
-                          image: _getProfileImage(),
                         ),
-                        child: _shouldShowPlaceholder()
-                            ? Center(
-                                child: Text(
-                                  currentUser.name.isNotEmpty
-                                      ? currentUser.name[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    fontSize: 48,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              )
-                            : null,
+                        child: ClipOval(
+                          child: _buildProfileImageContent(currentUser),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -390,35 +419,62 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  DecorationImage? _getProfileImage() {
-    if (_selectedImage != null) {
-      return DecorationImage(
-        image: FileImage(_selectedImage!),
+  Widget _buildProfileImageContent(dynamic currentUser) {
+    // 1. Show locally selected image
+    if (kIsWeb && _webImageBytes != null) {
+      return Image.memory(
+        _webImageBytes!,
         fit: BoxFit.cover,
+        width: 120,
+        height: 120,
+        errorBuilder: (_, __, ___) => _buildInitialPlaceholder(currentUser),
+      );
+    }
+    if (!kIsWeb && _selectedImage != null) {
+      return Image.file(
+        _selectedImage!,
+        fit: BoxFit.cover,
+        width: 120,
+        height: 120,
+        errorBuilder: (_, __, ___) => _buildInitialPlaceholder(currentUser),
       );
     }
 
-    if (_imageRemoved) {
-      return null;
+    // 2. Show existing network image (unless removed)
+    if (!_imageRemoved) {
+      final user = ref.read(currentUserProvider).valueOrNull;
+      if (user?.profileImage != null && user!.profileImage!.isNotEmpty) {
+        return Image.network(
+          user.profileImage!,
+          fit: BoxFit.cover,
+          width: 120,
+          height: 120,
+          errorBuilder: (_, __, ___) => _buildInitialPlaceholder(currentUser),
+        );
+      }
     }
 
-    final currentUser = ref.read(currentUserProvider).valueOrNull;
-    if (currentUser?.profileImage != null && currentUser!.profileImage!.isNotEmpty) {
-      return DecorationImage(
-        image: NetworkImage(currentUser.profileImage!),
-        fit: BoxFit.cover,
-      );
-    }
-
-    return null;
+    // 3. Fallback: initial letter placeholder
+    return _buildInitialPlaceholder(currentUser);
   }
 
-  bool _shouldShowPlaceholder() {
-    if (_selectedImage != null) return false;
-    if (_imageRemoved) return true;
-
-    final currentUser = ref.read(currentUserProvider).valueOrNull;
-    return currentUser?.profileImage == null || currentUser!.profileImage!.isEmpty;
+  Widget _buildInitialPlaceholder(dynamic currentUser) {
+    final name = (currentUser?.name ?? '') as String;
+    return Container(
+      width: 120,
+      height: 120,
+      color: AppColors.primary.withOpacity(0.1),
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: const TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildTextField({

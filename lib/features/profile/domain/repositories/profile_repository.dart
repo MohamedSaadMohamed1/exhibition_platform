@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../shared/models/user_model.dart';
@@ -20,6 +21,12 @@ abstract class ProfileRepository {
   Future<Either<Failure, String>> uploadProfileImage({
     required String userId,
     required File imageFile,
+  });
+
+  /// Upload profile image from bytes (for web)
+  Future<Either<Failure, String>> uploadProfileImageBytes({
+    required String userId,
+    required Uint8List bytes,
   });
 
   /// Delete profile image

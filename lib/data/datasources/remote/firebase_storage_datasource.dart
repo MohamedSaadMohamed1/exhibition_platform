@@ -69,14 +69,10 @@ class FirebaseStorageDataSourceImpl implements FirebaseStorageDataSource {
       }
 
       final ref = _storage.ref().child(storagePath);
-      SettableMetadata? settableMetadata;
-
-      if (metadata != null) {
-        settableMetadata = SettableMetadata(
-          customMetadata: metadata,
-          contentType: _getContentType(filePath),
-        );
-      }
+      final settableMetadata = SettableMetadata(
+        contentType: _getContentType(filePath),
+        customMetadata: metadata,
+      );
 
       await ref.putFile(file, settableMetadata);
       return await ref.getDownloadURL();

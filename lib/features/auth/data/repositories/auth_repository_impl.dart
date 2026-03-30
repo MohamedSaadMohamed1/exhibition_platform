@@ -236,13 +236,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<UserModel?> authStateChanges() {
-    return _auth.authStateChanges().asyncMap((user) async {
-      if (user == null) return null;
+    return _auth.authStateChanges().asyncExpand((user) {
+      if (user == null) return Stream.value(null);
 
-      final userDoc = await _usersCollection.doc(user.uid).get();
-      if (!userDoc.exists) return null;
-
-      return UserModel.fromFirestore(userDoc);
+      // Watch Firestore document so UI updates when profile changes (e.g. profile image)
+      return _usersCollection.doc(user.uid).snapshots().map((doc) {
+        if (!doc.exists) return null;
+        return UserModel.fromFirestore(doc);
+      });
     });
   }
 

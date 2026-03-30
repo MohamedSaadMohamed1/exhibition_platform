@@ -140,7 +140,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
       );
 
       // Using the provider method if exists, or just direct Firestore update
-      final docRef = FirebaseFirestore.instance.collection('suppliers').doc(currentSupplier.id);
+      final docRef = FirebaseFirestore.instance.collection(FirestoreCollections.suppliers).doc(currentSupplier.id);
       await docRef.update(updatedSupplier.toUpdateMap());
 
       // Invalidate to refresh UI

@@ -13,6 +13,8 @@ class BoothFormFields extends StatelessWidget {
   final Function(BoothSize) onSizeChanged;
   final Function(List<String>) onAmenitiesChanged;
   final bool enabled;
+  final TextEditingController? customWidthController;
+  final TextEditingController? customHeightController;
 
   const BoothFormFields({
     super.key,
@@ -25,6 +27,8 @@ class BoothFormFields extends StatelessWidget {
     required this.onSizeChanged,
     required this.onAmenitiesChanged,
     this.enabled = true,
+    this.customWidthController,
+    this.customHeightController,
   });
 
   static const List<String> availableAmenities = [
@@ -87,6 +91,56 @@ class BoothFormFields extends StatelessWidget {
             );
           }).toList(),
         ),
+        if (selectedSize == BoothSize.custom) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: customWidthController,
+                  enabled: enabled,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Width (m) *',
+                    hintText: 'e.g., 3.5',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (selectedSize != BoothSize.custom) return null;
+                    final v = double.tryParse(value ?? '');
+                    if (v == null || v <= 0) return 'Enter valid width';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: customHeightController,
+                  enabled: enabled,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Height (m) *',
+                    hintText: 'e.g., 4.0',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (selectedSize != BoothSize.custom) return null;
+                    final v = double.tryParse(value ?? '');
+                    if (v == null || v <= 0) return 'Enter valid height';
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
 
         // Category (optional)
@@ -191,6 +245,8 @@ class BoothFormFields extends StatelessWidget {
         return 'Large (5x5m)';
       case BoothSize.premium:
         return 'Premium (6x6m)';
+      case BoothSize.custom:
+        return 'Custom';
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/enums.dart';
 import '../core/utils/logger.dart';
+import '../shared/models/supplier_model.dart';
 import '../shared/providers/providers.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import 'routes.dart';
@@ -19,12 +20,18 @@ import '../features/admin/presentation/screens/admin_users_screen.dart';
 import '../features/admin/presentation/screens/create_organizer_screen.dart';
 import '../features/admin/presentation/screens/create_supplier_screen.dart';
 import '../features/admin/presentation/screens/admin_account_requests_screen.dart';
+import '../features/admin/presentation/screens/admin_orders_screen.dart';
+import '../features/admin/presentation/screens/admin_bookings_screen.dart';
+import '../features/admin/presentation/screens/admin_events_screen.dart';
+import '../features/admin/presentation/screens/admin_edit_event_screen.dart';
 import '../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/organizer_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/create_exhibition_screen.dart';
 import '../features/organizer/presentation/screens/manage_booths_screen.dart';
 import '../features/organizer/presentation/screens/create_booth_screen.dart';
 import '../features/organizer/presentation/screens/edit_booth_screen.dart';
+import '../features/organizer/presentation/screens/organizer_suppliers_screen.dart';
+import '../features/organizer/presentation/screens/book_supplier_screen.dart';
 import '../features/supplier/presentation/screens/supplier_dashboard_screen.dart';
 import '../features/supplier/presentation/screens/business_settings_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
@@ -176,6 +183,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminAccountRequests,
         builder: (context, state) => const AdminAccountRequestsScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.adminOrders,
+        builder: (context, state) => const AdminOrdersScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminBookings,
+        builder: (context, state) => const AdminBookingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminEvents,
+        builder: (context, state) => const AdminEventsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminEditEvent,
+        builder: (context, state) {
+          final eventId = state.pathParameters['eventId']!;
+          return AdminEditEventScreen(eventId: eventId);
+        },
+      ),
 
       // Owner Routes
       GoRoute(
@@ -212,6 +238,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final eventId = state.pathParameters['eventId']!;
           final boothId = state.pathParameters['boothId']!;
           return EditBoothScreen(eventId: eventId, boothId: boothId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.organizerSuppliers,
+        builder: (context, state) => const OrganizerSuppliersScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.organizerBookSupplier,
+        builder: (context, state) {
+          final supplier = state.extra as SupplierModel;
+          return BookSupplierScreen(supplier: supplier);
         },
       ),
 

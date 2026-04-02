@@ -22,6 +22,8 @@ class _CreateBoothScreenState extends ConsumerState<CreateBoothScreen> {
   final _categoryController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _customWidthController = TextEditingController();
+  final _customHeightController = TextEditingController();
 
   BoothSize _selectedSize = BoothSize.medium;
   List<String> _selectedAmenities = [];
@@ -81,6 +83,8 @@ class _CreateBoothScreenState extends ConsumerState<CreateBoothScreen> {
                 descriptionController: _descriptionController,
                 onSizeChanged: (size) => setState(() => _selectedSize = size),
                 onAmenitiesChanged: (amenities) => setState(() => _selectedAmenities = amenities),
+                customWidthController: _customWidthController,
+                customHeightController: _customHeightController,
               ),
 
               const SizedBox(height: 24),
@@ -135,6 +139,13 @@ class _CreateBoothScreenState extends ConsumerState<CreateBoothScreen> {
     final price = double.parse(_priceController.text);
     final notifier = ref.read(organizerBoothsProvider(widget.eventId).notifier);
 
+    final customWidth = _selectedSize == BoothSize.custom
+        ? double.tryParse(_customWidthController.text)
+        : null;
+    final customHeight = _selectedSize == BoothSize.custom
+        ? double.tryParse(_customHeightController.text)
+        : null;
+
     final success = await notifier.createBooth(
       boothNumber: _boothNumberController.text.trim(),
       size: _selectedSize,
@@ -146,6 +157,8 @@ class _CreateBoothScreenState extends ConsumerState<CreateBoothScreen> {
       description: _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim(),
+      customWidth: customWidth,
+      customHeight: customHeight,
     );
 
     if (!mounted) return;
@@ -167,6 +180,8 @@ class _CreateBoothScreenState extends ConsumerState<CreateBoothScreen> {
     _categoryController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
+    _customWidthController.dispose();
+    _customHeightController.dispose();
     super.dispose();
   }
 }

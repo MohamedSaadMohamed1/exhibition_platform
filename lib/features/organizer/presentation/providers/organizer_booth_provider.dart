@@ -150,6 +150,8 @@ class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, Strin
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
   }) async {
     state = state.copyWith(
       isCreating: true,
@@ -166,6 +168,8 @@ class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, Strin
       amenities: amenities,
       description: description,
       position: position,
+      customWidth: customWidth,
+      customHeight: customHeight,
     );
 
     return result.fold(
@@ -225,6 +229,8 @@ class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, Strin
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
   }) async {
     state = state.copyWith(
       isUpdating: true,
@@ -242,6 +248,8 @@ class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, Strin
       amenities: amenities,
       description: description,
       position: position,
+      customWidth: customWidth,
+      customHeight: customHeight,
     );
 
     return result.fold(

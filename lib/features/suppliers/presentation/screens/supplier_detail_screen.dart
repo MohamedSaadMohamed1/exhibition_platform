@@ -13,6 +13,7 @@ import '../../../services/presentation/providers/service_provider.dart';
 import '../../../reviews/presentation/providers/review_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../../../../shared/models/review_model.dart';
+import '../../../../router/routes.dart';
 
 class SupplierDetailScreen extends ConsumerWidget {
   final String supplierId;
@@ -339,6 +340,36 @@ class SupplierDetailScreen extends ConsumerWidget {
                   'This is your business profile',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondaryDark),
+                ),
+              ),
+            );
+          }
+
+          // Organizer sees "Book for Event" button
+          final userRole = ref.watch(userRoleProvider);
+          if (userRole?.name == 'organizer') {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: AppButton(
+                  text: 'Book for Event',
+                  icon: Icons.handshake_outlined,
+                  onPressed: () {
+                    context.push(
+                      AppRoutes.organizerBookSupplierPath(supplier.id),
+                      extra: supplier,
+                    );
+                  },
                 ),
               ),
             );

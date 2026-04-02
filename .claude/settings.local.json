@@ -4,7 +4,9 @@
       "Bash(powershell -Command \"cd ''e:\\\\flutter\\\\exhibition_platform''; if \\(Test-Path ''.dart_tool''\\) { Remove-Item -Recurse -Force ''.dart_tool'' }; if \\(Test-Path ''pubspec.lock''\\) { Remove-Item -Force ''pubspec.lock'' }; & ''C:\\\\Users\\\\mohamed\\\\flutter_windows_3.41.4-stable\\\\flutter\\\\bin\\\\flutter.bat'' pub get 2>&1\")",
       "Bash(powershell -Command \"cd 'e:\\\\flutter\\\\exhibition_platform'; & 'C:\\\\Users\\\\mohamed\\\\flutter_windows_3.41.4-stable\\\\flutter\\\\bin\\\\dart.bat' run build_runner build --delete-conflicting-outputs 2>&1\":*)",
       "Bash(powershell -Command:*)",
-      "Bash(C:Usersmohamedflutter_windows_3.41.4-stableflutterbinflutter.bat run -d windows)"
+      "Bash(C:Usersmohamedflutter_windows_3.41.4-stableflutterbinflutter.bat run -d windows)",
+      "Bash(firebase deploy:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

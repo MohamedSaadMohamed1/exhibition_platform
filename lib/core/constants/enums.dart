@@ -139,7 +139,8 @@ enum BoothSize {
   small('small', 'Small (3x3m)'),
   medium('medium', 'Medium (4x4m)'),
   large('large', 'Large (5x5m)'),
-  premium('premium', 'Premium (6x6m)');
+  premium('premium', 'Premium (6x6m)'),
+  custom('custom', 'Custom');
 
   const BoothSize(this.value, this.displayName);
   final String value;

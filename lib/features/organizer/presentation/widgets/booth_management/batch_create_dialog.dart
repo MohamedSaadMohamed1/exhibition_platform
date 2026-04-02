@@ -22,6 +22,8 @@ class _BatchCreateDialogState extends ConsumerState<BatchCreateDialog> {
   final _prefixController = TextEditingController(text: 'A-');
   final _startNumberController = TextEditingController(text: '1');
   final _priceController = TextEditingController();
+  final _customWidthController = TextEditingController();
+  final _customHeightController = TextEditingController();
   BoothSize _selectedSize = BoothSize.medium;
   List<String> _selectedAmenities = [];
 
@@ -136,6 +138,54 @@ class _BatchCreateDialogState extends ConsumerState<BatchCreateDialog> {
                   );
                 }).toList(),
               ),
+              if (_selectedSize == BoothSize.custom) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _customWidthController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Width (m) *',
+                          hintText: 'e.g., 3.5',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (_selectedSize != BoothSize.custom) return null;
+                          final v = double.tryParse(value ?? '');
+                          if (v == null || v <= 0) return 'Enter valid width';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _customHeightController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Height (m) *',
+                          hintText: 'e.g., 4.0',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (_selectedSize != BoothSize.custom) return null;
+                          final v = double.tryParse(value ?? '');
+                          if (v == null || v <= 0) return 'Enter valid height';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Price
@@ -246,6 +296,12 @@ class _BatchCreateDialogState extends ConsumerState<BatchCreateDialog> {
 
     final price = double.parse(_priceController.text);
     final boothNumbers = _generateBoothNumbers();
+    final customWidth = _selectedSize == BoothSize.custom
+        ? double.tryParse(_customWidthController.text)
+        : null;
+    final customHeight = _selectedSize == BoothSize.custom
+        ? double.tryParse(_customHeightController.text)
+        : null;
 
     final booths = boothNumbers.map((number) {
       return BoothModel(
@@ -256,6 +312,8 @@ class _BatchCreateDialogState extends ConsumerState<BatchCreateDialog> {
         price: price,
         amenities: _selectedAmenities,
         status: BoothStatus.available,
+        customWidth: customWidth,
+        customHeight: customHeight,
         createdAt: DateTime.now(),
       );
     }).toList();
@@ -284,6 +342,8 @@ class _BatchCreateDialogState extends ConsumerState<BatchCreateDialog> {
     _prefixController.dispose();
     _startNumberController.dispose();
     _priceController.dispose();
+    _customWidthController.dispose();
+    _customHeightController.dispose();
     super.dispose();
   }
 }

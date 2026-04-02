@@ -367,4 +367,26 @@ class OrderRepositoryImpl implements OrderRepository {
       return Left(e.toFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, List<OrderModel>>> getAllOrders({
+    OrderStatus? status,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query =
+          _ordersCollection.orderBy('createdAt', descending: true);
+
+      if (status != null) {
+        query = query.where('status', isEqualTo: status.value);
+      }
+
+      final snapshot = await query.limit(200).get();
+      final orders =
+          snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+
+      return Right(orders);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
 }

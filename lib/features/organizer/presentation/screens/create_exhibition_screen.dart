@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/image_upload_service.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../events/presentation/providers/events_provider.dart';
 
@@ -72,23 +73,23 @@ class _CreateExhibitionScreenState
 
     setState(() => _isCreating = true);
 
-    final result = await ref.read(eventRepositoryProvider).createEvent(
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          location: _locationController.text.trim(),
-          startDate: _startDate!,
-          endDate: _endDate!,
-          tags: [], // Can add tags input later
-          images: [], // Can add image upload later
-          organizerId: currentUser.id,
-        );
-
-    setState(() => _isCreating = false);
+    final eventRepo = ref.read(eventRepositoryProvider);
+    final result = await eventRepo.createEvent(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      location: _locationController.text.trim(),
+      startDate: _startDate!,
+      endDate: _endDate!,
+      tags: [],
+      images: [],
+      organizerId: currentUser.id,
+    );
 
     if (!mounted) return;
 
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
+        setState(() => _isCreating = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to create exhibition: ${failure.message}'),
@@ -96,8 +97,37 @@ class _CreateExhibitionScreenState
           ),
         );
       },
-      (event) {
-        // Show success message
+      (event) async {
+        // Upload banner image if selected
+        if (_bannerImageBytes != null) {
+          try {
+            final uploadService = ref.read(imageUploadServiceProvider);
+            final uploadResult = await uploadService.uploadImageFromBytes(
+              bytes: _bannerImageBytes!,
+              storagePath: 'events/${event.id}',
+              fileName: 'banner.jpg',
+              generateThumbnail: false,
+            );
+            await eventRepo.updateEvent(
+              eventId: event.id,
+              images: [uploadResult.url],
+            );
+          } catch (e) {
+            // Image upload failed but event is created — non-critical
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Event created but image upload failed'),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+            }
+          }
+        }
+
+        setState(() => _isCreating = false);
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Exhibition created successfully!'),
@@ -105,10 +135,7 @@ class _CreateExhibitionScreenState
           ),
         );
 
-        // Refresh the events list so the new event appears immediately
         ref.invalidate(organizerEventsProvider(currentUser.id));
-
-        // Show dialog to create booths
         _showBoothCreationDialog(event.id, event.title);
       },
     );

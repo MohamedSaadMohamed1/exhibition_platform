@@ -75,4 +75,9 @@ abstract class BookingRepository {
 
   /// Watch organizer bookings
   Stream<List<BookingRequest>> watchOrganizerBookings(String organizerId);
+
+  /// Get all bookings (admin only)
+  Future<Either<Failure, List<BookingRequest>>> getAllBookings({
+    BookingStatus? status,
+  });
 }

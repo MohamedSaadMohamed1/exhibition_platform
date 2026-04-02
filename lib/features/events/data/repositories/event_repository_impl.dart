@@ -433,4 +433,26 @@ class EventRepositoryImpl implements EventRepository {
       return Left(e.toFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, List<EventModel>>> getAllEvents({
+    EventStatus? status,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query =
+          _eventsCollection.orderBy('createdAt', descending: true);
+
+      if (status != null) {
+        query = query.where('status', isEqualTo: status.value);
+      }
+
+      final snapshot = await query.limit(200).get();
+      final events =
+          snapshot.docs.map((doc) => EventModel.fromFirestore(doc)).toList();
+
+      return Right(events);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
 }

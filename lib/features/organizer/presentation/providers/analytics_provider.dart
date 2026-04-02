@@ -39,7 +39,7 @@ class OrganizerAnalyticsNotifier extends FamilyNotifier<AnalyticsState, String> 
   @override
   AnalyticsState build(String organizerId) {
     _firestore = ref.watch(firestoreProvider);
-    _loadAnalytics(organizerId);
+    Future.microtask(() => _loadAnalytics(organizerId));
     return const AnalyticsState(isLoading: true);
   }
 

@@ -17,6 +17,8 @@ class BoothModel {
   final List<String> amenities;
   final String? description;
   final BoothPosition? position;
+  final double? customWidth;
+  final double? customHeight;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -35,6 +37,8 @@ class BoothModel {
     this.amenities = const [],
     this.description,
     this.position,
+    this.customWidth,
+    this.customHeight,
     required this.createdAt,
     this.updatedAt,
   });
@@ -57,6 +61,8 @@ class BoothModel {
       position: json['position'] != null
           ? BoothPosition.fromJson(json['position'] as Map<String, dynamic>)
           : null,
+      customWidth: (json['customWidth'] as num?)?.toDouble(),
+      customHeight: (json['customHeight'] as num?)?.toDouble(),
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: json['updatedAt'] != null ? _parseDateTime(json['updatedAt']) : null,
     );
@@ -109,6 +115,8 @@ class BoothModel {
       'amenities': amenities,
       'description': description,
       'position': position?.toJson(),
+      'customWidth': customWidth,
+      'customHeight': customHeight,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
     };
@@ -152,6 +160,11 @@ class BoothModel {
         return 'Large (5x5m)';
       case BoothSize.premium:
         return 'Premium (6x6m)';
+      case BoothSize.custom:
+        if (customWidth != null && customHeight != null) {
+          return 'Custom (${customWidth!.toStringAsFixed(1)}x${customHeight!.toStringAsFixed(1)}m)';
+        }
+        return 'Custom';
     }
   }
 
@@ -170,6 +183,8 @@ class BoothModel {
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -188,6 +203,8 @@ class BoothModel {
       amenities: amenities ?? this.amenities,
       description: description ?? this.description,
       position: position ?? this.position,
+      customWidth: customWidth ?? this.customWidth,
+      customHeight: customHeight ?? this.customHeight,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

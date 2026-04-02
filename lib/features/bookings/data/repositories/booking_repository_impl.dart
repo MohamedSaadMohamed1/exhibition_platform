@@ -462,4 +462,27 @@ class BookingRepositoryImpl implements BookingRepository {
           .toList();
     });
   }
+
+  @override
+  Future<Either<Failure, List<BookingRequest>>> getAllBookings({
+    BookingStatus? status,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query =
+          _bookingsCollection.orderBy('createdAt', descending: true);
+
+      if (status != null) {
+        query = query.where('status', isEqualTo: status.value);
+      }
+
+      final snapshot = await query.limit(200).get();
+      final bookings = snapshot.docs
+          .map((doc) => BookingRequest.fromFirestore(doc))
+          .toList();
+
+      return Right(bookings);
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
 }

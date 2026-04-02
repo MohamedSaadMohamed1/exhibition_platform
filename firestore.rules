@@ -117,7 +117,7 @@ service cloud.firestore {
     // ========================
     // BOOKING REQUESTS COLLECTION
     // ========================
-    match /bookingRequests/{requestId} {
+    match /booking_requests/{requestId} {
       // Exhibitors can read their own requests
       // Organizers can read requests for their events
       allow read: if isAuthenticated()
@@ -230,7 +230,7 @@ service cloud.firestore {
     // ========================
     // EVENT JOBS COLLECTION
     // ========================
-    match /eventJobs/{jobId} {
+    match /jobs/{jobId} {
       // Anyone authenticated can read open jobs
       allow read: if isAuthenticated();
 
@@ -251,14 +251,14 @@ service cloud.firestore {
     // ========================
     // JOB APPLICATIONS COLLECTION
     // ========================
-    match /jobApplications/{applicationId} {
+    match /job_applications/{applicationId} {
       // Applicants can read their own applications
       // Job creators can read applications for their jobs
       allow read: if isAuthenticated()
         && (resource.data.userId == currentUserId()
             || isAdmin()
-            || exists(/databases/$(database)/documents/eventJobs/$(resource.data.jobId))
-                && get(/databases/$(database)/documents/eventJobs/$(resource.data.jobId)).data.organizerId == currentUserId());
+            || exists(/databases/$(database)/documents/jobs/$(resource.data.jobId))
+                && get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.organizerId == currentUserId());
 
       // Users can create applications
       allow create: if isAuthenticated()
@@ -268,12 +268,28 @@ service cloud.firestore {
       // Job creators can update application status
       allow update: if isAuthenticated()
         && (isAdmin()
-            || (exists(/databases/$(database)/documents/eventJobs/$(resource.data.jobId))
-                && get(/databases/$(database)/documents/eventJobs/$(resource.data.jobId)).data.organizerId == currentUserId()
+            || (exists(/databases/$(database)/documents/jobs/$(resource.data.jobId))
+                && get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.organizerId == currentUserId()
                 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'feedback', 'reviewedAt', 'updatedAt'])));
 
       // Only admin can delete
       allow delete: if isAdmin();
+    }
+
+    // ========================
+    // ACCOUNT REQUESTS COLLECTION
+    // ========================
+    match /account_requests/{requestId} {
+      // Users can read their own request; admin can read all
+      allow read: if isAuthenticated()
+        && (resource.data.userId == currentUserId() || isAdmin());
+
+      // Any authenticated user can create a request for themselves
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == currentUserId();
+
+      // Only admin can update (approve/reject) or delete
+      allow update, delete: if isAdmin();
     }
 
     // ========================

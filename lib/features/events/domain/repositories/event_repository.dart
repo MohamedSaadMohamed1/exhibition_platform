@@ -91,4 +91,7 @@ abstract class EventRepository {
 
   /// Get event categories
   Future<Either<Failure, List<String>>> getEventCategories();
+
+  /// Get all events regardless of status (admin only)
+  Future<Either<Failure, List<EventModel>>> getAllEvents({EventStatus? status});
 }

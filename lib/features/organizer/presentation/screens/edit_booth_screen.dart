@@ -30,6 +30,8 @@ class _EditBoothScreenState extends ConsumerState<EditBoothScreen> {
   late TextEditingController _categoryController;
   late TextEditingController _priceController;
   late TextEditingController _descriptionController;
+  late TextEditingController _customWidthController;
+  late TextEditingController _customHeightController;
 
   BoothSize _selectedSize = BoothSize.medium;
   List<String> _selectedAmenities = [];
@@ -60,6 +62,12 @@ class _EditBoothScreenState extends ConsumerState<EditBoothScreen> {
             _descriptionController = TextEditingController(text: booth.description ?? '');
             _selectedSize = booth.size;
             _selectedAmenities = List<String>.from(booth.amenities);
+            _customWidthController = TextEditingController(
+              text: booth.customWidth?.toString() ?? '',
+            );
+            _customHeightController = TextEditingController(
+              text: booth.customHeight?.toString() ?? '',
+            );
             _isInitialized = true;
           }
 
@@ -141,6 +149,8 @@ class _EditBoothScreenState extends ConsumerState<EditBoothScreen> {
                     onAmenitiesChanged: (amenities) =>
                         setState(() => _selectedAmenities = amenities),
                     enabled: !isBooked,
+                    customWidthController: _customWidthController,
+                    customHeightController: _customHeightController,
                   ),
 
                   const SizedBox(height: 24),
@@ -200,6 +210,13 @@ class _EditBoothScreenState extends ConsumerState<EditBoothScreen> {
     final price = double.parse(_priceController.text);
     final notifier = ref.read(organizerBoothsProvider(widget.eventId).notifier);
 
+    final customWidth = _selectedSize == BoothSize.custom
+        ? double.tryParse(_customWidthController.text)
+        : null;
+    final customHeight = _selectedSize == BoothSize.custom
+        ? double.tryParse(_customHeightController.text)
+        : null;
+
     final success = await notifier.updateBooth(
       boothId: widget.boothId,
       boothNumber: _boothNumberController.text.trim(),
@@ -212,6 +229,8 @@ class _EditBoothScreenState extends ConsumerState<EditBoothScreen> {
       description: _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim(),
+      customWidth: customWidth,
+      customHeight: customHeight,
     );
 
     if (!mounted) return;
@@ -246,6 +265,8 @@ class _EditBoothScreenState extends ConsumerState<EditBoothScreen> {
       _categoryController.dispose();
       _priceController.dispose();
       _descriptionController.dispose();
+      _customWidthController.dispose();
+      _customHeightController.dispose();
     }
     super.dispose();
   }

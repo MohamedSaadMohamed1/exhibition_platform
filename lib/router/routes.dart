@@ -17,6 +17,10 @@ abstract class AppRoutes {
   static const String adminCreateOrganizer = '/admin/create-organizer';
   static const String adminCreateSupplier = '/admin/create-supplier';
   static const String adminAccountRequests = '/admin/account-requests';
+  static const String adminOrders = '/admin/orders';
+  static const String adminBookings = '/admin/bookings';
+  static const String adminEvents = '/admin/events';
+  static const String adminEditEvent = '/admin/events/:eventId/edit';
 
   // Owner routes
   static const String ownerDashboard = '/owner/dashboard';
@@ -34,6 +38,11 @@ abstract class AppRoutes {
   static const String organizerBooths = '/organizer/exhibitions/:exhibitionId/booths';
   static const String organizerBookings = '/organizer/bookings';
   static const String organizerJobs = '/organizer/jobs';
+  static const String organizerSuppliers = '/organizer/suppliers';
+  static const String organizerBookSupplier = '/organizer/suppliers/book/:supplierId';
+
+  static String organizerBookSupplierPath(String supplierId) =>
+      '/organizer/suppliers/book/$supplierId';
 
   // Supplier routes
   static const String supplierDashboard = '/supplier/dashboard';

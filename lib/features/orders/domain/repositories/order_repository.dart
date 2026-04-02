@@ -68,4 +68,7 @@ abstract class OrderRepository {
 
   /// Get pending orders count for supplier
   Future<Either<Failure, int>> getPendingOrdersCount(String supplierId);
+
+  /// Get all orders (admin only)
+  Future<Either<Failure, List<OrderModel>>> getAllOrders({OrderStatus? status});
 }

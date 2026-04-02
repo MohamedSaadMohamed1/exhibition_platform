@@ -29,6 +29,8 @@ abstract class BoothRepository {
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
   });
 
   /// Create multiple booths (Organizer only)
@@ -48,6 +50,8 @@ abstract class BoothRepository {
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
   });
 
   /// Delete booth (Organizer only)

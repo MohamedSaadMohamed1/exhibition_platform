@@ -11,7 +11,10 @@ import '../../../../shared/providers/providers.dart';
 import '../../../../shared/widgets/role_dashboard_shell.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/providers/events_provider.dart';
+import '../../../../shared/models/event_model.dart';
 import '../providers/organizer_booking_provider.dart';
+import '../providers/analytics_provider.dart';
+import '../../../chat/presentation/screens/chats_screen.dart';
 import '../widgets/booking_management/booking_request_card.dart';
 import '../widgets/booking_management/booking_detail_sheet.dart';
 import '../widgets/booking_management/booking_filter_chips.dart';
@@ -80,6 +83,29 @@ class _DashboardTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final userId = currentUser?.id ?? '';
+    final analyticsState = userId.isNotEmpty
+        ? ref.watch(organizerAnalyticsProvider(userId))
+        : const AnalyticsState();
+    final eventsAsync = userId.isNotEmpty
+        ? ref.watch(organizerEventsProvider(userId))
+        : const AsyncValue<List<EventModel>>.data([]);
+
+    final analytics = analyticsState.analytics;
+    final events = eventsAsync.valueOrNull ?? <EventModel>[];
+    final totalBooths = events.fold<int>(0, (sum, e) => sum + e.boothCount);
+
+    final upcomingEvents = events
+        .where((e) => e.isUpcoming)
+        .toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+
+    String _formatRevenue(double revenue) {
+      if (revenue >= 1000000) return '\$${(revenue / 1000000).toStringAsFixed(1)}M';
+      if (revenue >= 1000) return '\$${(revenue / 1000).toStringAsFixed(0)}k';
+      return '\$${revenue.toStringAsFixed(0)}';
+    }
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -172,6 +198,15 @@ class _DashboardTab extends ConsumerWidget {
                     onTap: () {},
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickActionButton(
+                    icon: Icons.handshake_outlined,
+                    label: 'Suppliers',
+                    color: AppColors.info,
+                    onTap: () => context.push(AppRoutes.organizerSuppliers),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -185,40 +220,42 @@ class _DashboardTab extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.3,
-              children: [
-                _StatCard(
-                  title: 'Active Events',
-                  value: '3',
-                  icon: Icons.event,
-                  color: AppColors.organizerColor,
-                ),
-                _StatCard(
-                  title: 'Total Booths',
-                  value: '156',
-                  icon: Icons.grid_view,
-                  color: AppColors.info,
-                ),
-                _StatCard(
-                  title: 'Bookings',
-                  value: '89',
-                  icon: Icons.bookmark,
-                  color: AppColors.success,
-                ),
-                _StatCard(
-                  title: 'Revenue',
-                  value: '\$45k',
-                  icon: Icons.trending_up,
-                  color: AppColors.warning,
-                ),
-              ],
-            ),
+            analyticsState.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.3,
+                    children: [
+                      _StatCard(
+                        title: 'Active Events',
+                        value: '${analytics?.activeEvents ?? 0}',
+                        icon: Icons.event,
+                        color: AppColors.organizerColor,
+                      ),
+                      _StatCard(
+                        title: 'Total Booths',
+                        value: '$totalBooths',
+                        icon: Icons.grid_view,
+                        color: AppColors.info,
+                      ),
+                      _StatCard(
+                        title: 'Bookings',
+                        value: '${analytics?.totalBookings ?? 0}',
+                        icon: Icons.bookmark,
+                        color: AppColors.success,
+                      ),
+                      _StatCard(
+                        title: 'Revenue',
+                        value: _formatRevenue(analytics?.totalRevenue ?? 0),
+                        icon: Icons.trending_up,
+                        color: AppColors.warning,
+                      ),
+                    ],
+                  ),
             const SizedBox(height: 24),
             // Upcoming Events
             Row(
@@ -239,18 +276,29 @@ class _DashboardTab extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _EventItem(
-              title: 'Tech Summit Kuwait 2026',
-              date: 'Mar 15-18, 2026',
-              booths: '45/150 booked',
-              progress: 0.3,
-            ),
-            _EventItem(
-              title: 'Food & Beverage Expo',
-              date: 'Apr 5-8, 2026',
-              booths: '120/200 booked',
-              progress: 0.6,
-            ),
+            if (eventsAsync.isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (upcomingEvents.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    'No upcoming events',
+                    style: TextStyle(color: AppColors.textSecondaryDark),
+                  ),
+                ),
+              )
+            else
+              ...upcomingEvents.take(3).map((e) {
+                final dateStr =
+                    '${DateFormat('MMM d').format(e.startDate)} – ${DateFormat('MMM d, yyyy').format(e.endDate)}';
+                return _EventItem(
+                  title: e.title,
+                  date: dateStr,
+                  booths: '${e.boothCount} booths',
+                  progress: 0,
+                );
+              }),
             const SizedBox(height: 100), // Space for nav
           ],
         ),
@@ -786,55 +834,7 @@ class _MessagesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Messages',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.search, color: AppColors.textSecondaryDark),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 64,
-                    color: AppColors.grey600,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No messages yet',
-                    style: TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return const ChatsScreen();
   }
 }
 
@@ -1127,7 +1127,7 @@ class _OrganizerEventCard extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          // View event details
+                          context.push('/events/${event.id}');
                         },
                         icon: const Icon(Icons.visibility, size: 18),
                         label: const Text('View'),

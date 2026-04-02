@@ -79,8 +79,8 @@ class OrganizerBookingNotifier extends FamilyNotifier<OrganizerBookingState, Str
   @override
   OrganizerBookingState build(String organizerId) {
     _bookingRepository = ref.watch(bookingRepositoryProvider);
-    _loadBookings(organizerId);
-    _loadStats(organizerId);
+    Future.microtask(() => _loadBookings(organizerId, refresh: true));
+    Future.microtask(() => _loadStats(organizerId));
     return const OrganizerBookingState(isLoading: true);
   }
 

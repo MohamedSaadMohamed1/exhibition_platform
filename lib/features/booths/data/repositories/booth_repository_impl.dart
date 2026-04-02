@@ -104,6 +104,8 @@ class BoothRepositoryImpl implements BoothRepository {
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
   }) async {
     try {
       final boothId = _uuid.v4();
@@ -119,6 +121,8 @@ class BoothRepositoryImpl implements BoothRepository {
         amenities: amenities ?? [],
         description: description,
         position: position,
+        customWidth: customWidth,
+        customHeight: customHeight,
         createdAt: DateTime.now(),
       );
 
@@ -184,6 +188,8 @@ class BoothRepositoryImpl implements BoothRepository {
     List<String>? amenities,
     String? description,
     BoothPosition? position,
+    double? customWidth,
+    double? customHeight,
   }) async {
     try {
       final updates = <String, dynamic>{
@@ -191,7 +197,15 @@ class BoothRepositoryImpl implements BoothRepository {
       };
 
       if (boothNumber != null) updates['boothNumber'] = boothNumber;
-      if (size != null) updates['size'] = size.value;
+      if (size != null) {
+        updates['size'] = size.value;
+        if (size != BoothSize.custom) {
+          updates['customWidth'] = FieldValue.delete();
+          updates['customHeight'] = FieldValue.delete();
+        }
+      }
+      if (customWidth != null) updates['customWidth'] = customWidth;
+      if (customHeight != null) updates['customHeight'] = customHeight;
       if (category != null) updates['category'] = category;
       if (price != null) updates['price'] = price;
       if (amenities != null) updates['amenities'] = amenities;

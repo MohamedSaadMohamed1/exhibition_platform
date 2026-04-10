@@ -133,10 +133,12 @@ final myOrdersAsSupplierProvider = FutureProvider<List<OrderModel>>((ref) async 
   final snapshot = await FirebaseFirestore.instance
       .collection('orders')
       .where('supplierId', isEqualTo: supplier.id)
-      .orderBy('createdAt', descending: true)
       .get();
 
-  return snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+  final orders = snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+  // Sort locally to bypass missing composite index in Firebase
+  orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return orders;
 });
 
 /// Provider for supplier dashboard stats
@@ -203,11 +205,12 @@ final recentOrdersProvider = FutureProvider<List<OrderModel>>((ref) async {
   final snapshot = await FirebaseFirestore.instance
       .collection('orders')
       .where('supplierId', isEqualTo: supplier.id)
-      .orderBy('createdAt', descending: true)
-      .limit(5)
       .get();
 
-  return snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+  final orders = snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+  // Sort locally to bypass missing composite index in Firebase
+  orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return orders.take(5).toList();
 });
 
 /// Dashboard stats model

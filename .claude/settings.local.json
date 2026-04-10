@@ -6,7 +6,11 @@
       "Bash(powershell -Command:*)",
       "Bash(C:Usersmohamedflutter_windows_3.41.4-stableflutterbinflutter.bat run -d windows)",
       "Bash(firebase deploy:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(find /c/Users/lenovo/Documents/GitHub/exhibition_platform/lib/features -type f -name *.dart)",
+      "Bash(find /c/Users/lenovo/Documents/GitHub/exhibition_platform/ios -name *.xcconfig -exec cat {})",
+      "Bash(2)",
+      "Bash(flutter doctor:*)"
     ]
   }
 }

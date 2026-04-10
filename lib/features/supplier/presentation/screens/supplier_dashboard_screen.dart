@@ -1780,6 +1780,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
             // Tab Bar
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
+              height: 44,
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
                 borderRadius: BorderRadius.circular(12),
@@ -1788,12 +1789,17 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                 controller: _tabController,
                 indicator: BoxDecoration(
                   color: AppColors.supplierColor,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorPadding: EdgeInsets.zero,
+                dividerColor: Colors.transparent,
                 labelColor: Colors.white,
                 unselectedLabelColor: AppColors.textSecondaryDark,
                 labelStyle:
                     const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                padding: EdgeInsets.zero,
+                tabAlignment: TabAlignment.fill,
                 tabs: const [
                   Tab(text: 'All'),
                   Tab(text: 'Pending'),

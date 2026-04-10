@@ -74,15 +74,19 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       final snapshot = await _chatsCollection
           .where('participants', arrayContains: userId)
-          .orderBy('lastMessageAt', descending: true)
-          .limit(limit)
           .get();
 
       final chats = snapshot.docs
           .map((doc) => ChatModel.fromFirestore(doc))
           .toList();
+      // Sort locally to bypass missing composite index in Firebase
+      chats.sort((a, b) {
+        final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
 
-      return Right(chats);
+      return Right(chats.take(limit).toList());
     } catch (e) {
       return Left(e.toFailure());
     }
@@ -231,10 +235,16 @@ class ChatRepositoryImpl implements ChatRepository {
   Stream<List<ChatModel>> watchUserChats(String userId) {
     return _chatsCollection
         .where('participants', arrayContains: userId)
-        .orderBy('lastMessageAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList();
+      final chats = snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList();
+      // Sort locally to bypass missing composite index in Firebase
+      chats.sort((a, b) {
+        final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+      return chats;
     });
   }
 

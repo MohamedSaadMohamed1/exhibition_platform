@@ -103,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           children: [
                             // App Title
                             Text(
-                              'EXHIBITION',
+                              'candoo',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,

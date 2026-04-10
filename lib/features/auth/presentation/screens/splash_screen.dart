@@ -122,7 +122,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       const SizedBox(height: 32),
                       // App name with glow
                       Text(
-                        'EXHIBITION',
+                        'candoo',
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,

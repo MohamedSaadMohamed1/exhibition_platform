@@ -24,6 +24,7 @@ import '../features/admin/presentation/screens/admin_orders_screen.dart';
 import '../features/admin/presentation/screens/admin_bookings_screen.dart';
 import '../features/admin/presentation/screens/admin_events_screen.dart';
 import '../features/admin/presentation/screens/admin_edit_event_screen.dart';
+import '../features/admin/presentation/screens/admin_job_applications_screen.dart';
 import '../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/organizer_dashboard_screen.dart';
 import '../features/organizer/presentation/screens/create_exhibition_screen.dart';
@@ -201,6 +202,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final eventId = state.pathParameters['eventId']!;
           return AdminEditEventScreen(eventId: eventId);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.adminJobApplications,
+        builder: (context, state) => const AdminJobApplicationsScreen(),
       ),
 
       // Owner Routes

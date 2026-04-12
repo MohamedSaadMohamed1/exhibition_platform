@@ -3,19 +3,19 @@ import 'package:flutter/material.dart';
 /// Application color palette - Dark Purple Theme
 abstract class AppColors {
   // Primary Colors (Purple)
-  static const Color primary = Color(0xFF8B5CF6);
-  static const Color primaryLight = Color(0xFFA78BFA);
-  static const Color primaryDark = Color(0xFF7C3AED);
+  static const Color primary = Color(0xFF8C30E8);
+  static const Color primaryLight = Color(0xFFB060F0);
+  static const Color primaryDark = Color(0xFF37006D);
 
   // Secondary Colors
-  static const Color secondary = Color(0xFF10B981);
-  static const Color secondaryLight = Color(0xFF34D399);
-  static const Color secondaryDark = Color(0xFF059669);
+  static const Color secondary = Color(0xFFA020D4);
+  static const Color secondaryLight = Color(0xFFC060EC);
+  static const Color secondaryDark = Color(0xFF7010A8);
 
-  // Accent Colors (Teal/Green)
-  static const Color accent = Color(0xFF06D6A0);
-  static const Color accentLight = Color(0xFF6FFFE9);
-  static const Color accentDark = Color(0xFF00B388);
+  // Accent Colors
+  static const Color accent = Color(0xFF6D10C4);
+  static const Color accentLight = Color(0xFF9A50D8);
+  static const Color accentDark = Color(0xFF4B0090);
 
   // Background Colors (Dark)
   static const Color scaffoldDark = Color(0xFF0D0B14);
@@ -66,18 +66,18 @@ abstract class AppColors {
   static const Color interested = Color(0xFF06D6A0);
 
   // Tag colors
-  static const Color tagBackground = Color(0xFF2D2640);
-  static const Color tagBorder = Color(0xFF3D3650);
+  static const Color tagBackground = Color(0xFF1E1040);
+  static const Color tagBorder = Color(0xFF3A1560);
   static const Color tagText = Color(0xFFE5E7EB);
 
   // Tab colors
-  static const Color tabActive = Color(0xFF8B5CF6);
+  static const Color tabActive = Color(0xFF8C30E8);
   static const Color tabInactive = Color(0xFF6B7280);
 
   // Role Colors
   static const Color adminColor = Color(0xFFEF4444);
   static const Color ownerColor = Color(0xFFF59E0B);
-  static const Color organizerColor = Color(0xFF8B5CF6);
+  static const Color organizerColor = Color(0xFF8C30E8);
   static const Color supplierColor = Color(0xFF10B981);
   static const Color exhibitorColor = Color(0xFF06B6D4);
   static const Color visitorColor = Color(0xFF3B82F6);
@@ -96,19 +96,19 @@ abstract class AppColors {
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+    colors: [Color(0xFF8C30E8), Color(0xFF37006D)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
   static const LinearGradient bottomNavGradient = LinearGradient(
-    colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+    colors: [Color(0xFF8C30E8), Color(0xFF37006D)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient purpleGradient = LinearGradient(
-    colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+    colors: [Color(0xFF8C30E8), Color(0xFF37006D)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

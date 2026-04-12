@@ -246,6 +246,33 @@ service cloud.firestore {
       // Only admin or job creator can delete
       allow delete: if isAuthenticated()
         && (resource.data.organizerId == currentUserId() || isAdmin());
+
+      // ========================
+      // JOB APPLICATIONS SUBCOLLECTION
+      // ========================
+      match /applications/{applicationId} {
+        // Applicant reads their own; organizer reads for their job; admin reads all
+        allow read: if isAuthenticated()
+          && (resource.data.userId == currentUserId()
+              || isAdmin()
+              || get(/databases/$(database)/documents/jobs/$(jobId)).data.organizerId == currentUserId());
+
+        // Any authenticated user can apply (applicant sets their own userId)
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == currentUserId()
+          && request.resource.data.status == 'pending';
+
+        // Organizer or admin can update status/feedback
+        allow update: if isAuthenticated()
+          && (isAdmin()
+              || (get(/databases/$(database)/documents/jobs/$(jobId)).data.organizerId == currentUserId()
+                  && request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['status', 'feedback', 'reviewedAt', 'updatedAt'])));
+
+        // Applicant can withdraw (delete) their own; admin can delete any
+        allow delete: if isAuthenticated()
+          && (resource.data.userId == currentUserId() || isAdmin());
+      }
     }
 
     // ========================

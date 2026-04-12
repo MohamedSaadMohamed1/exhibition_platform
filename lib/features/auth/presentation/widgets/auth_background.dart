@@ -21,10 +21,10 @@ class AuthBackground extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF0D0D1A), // Very dark purple/black
-            const Color(0xFF1A1A2E), // Dark purple
-            const Color(0xFF16213E), // Dark blue-purple
-            const Color(0xFF0D0D1A), // Very dark purple/black
+            const Color(0xFF0A0014), // Near-black deep purple
+            const Color(0xFF160030), // Dark purple family
+            const Color(0xFF220045), // Slightly lighter deep purple
+            const Color(0xFF0A0014), // Near-black deep purple
           ],
           stops: const [0.0, 0.3, 0.7, 1.0],
         ),
@@ -45,7 +45,7 @@ class AuthBackground extends StatelessWidget {
             left: -100,
             child: _buildGlowingOrb(
               size: 300,
-              color: const Color(0xFF6C63FF).withOpacity(0.25),
+              color: AppColors.primaryDark.withOpacity(0.25),
             ),
           ),
           Positioned(
@@ -53,7 +53,7 @@ class AuthBackground extends StatelessWidget {
             right: -80,
             child: _buildGlowingOrb(
               size: 200,
-              color: const Color(0xFFE040FB).withOpacity(0.2),
+              color: const Color(0xFF6218B0).withOpacity(0.2),
             ),
           ),
           Positioned(
@@ -61,7 +61,7 @@ class AuthBackground extends StatelessWidget {
             left: -60,
             child: _buildGlowingOrb(
               size: 180,
-              color: AppColors.secondary.withOpacity(0.15),
+              color: AppColors.primaryDark.withOpacity(0.15),
             ),
           ),
           // Flowing curves
@@ -109,10 +109,10 @@ class FlowingCurvesPainter extends CustomPainter {
     // First flowing curve - purple
     paint.shader = LinearGradient(
       colors: [
-        const Color(0xFF6C63FF).withOpacity(0.0),
-        const Color(0xFF6C63FF).withOpacity(0.4),
-        const Color(0xFFE040FB).withOpacity(0.3),
-        const Color(0xFFE040FB).withOpacity(0.0),
+        const Color(0xFF8C30E8).withOpacity(0.0),
+        const Color(0xFF8C30E8).withOpacity(0.4),
+        const Color(0xFF6218B0).withOpacity(0.3),
+        const Color(0xFF6218B0).withOpacity(0.0),
       ],
       stops: const [0.0, 0.3, 0.7, 1.0],
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -140,10 +140,10 @@ class FlowingCurvesPainter extends CustomPainter {
     // Second flowing curve
     paint.shader = LinearGradient(
       colors: [
-        const Color(0xFFE040FB).withOpacity(0.0),
-        const Color(0xFFE040FB).withOpacity(0.3),
-        const Color(0xFF6C63FF).withOpacity(0.4),
-        const Color(0xFF6C63FF).withOpacity(0.0),
+        const Color(0xFF6218B0).withOpacity(0.0),
+        const Color(0xFF6218B0).withOpacity(0.3),
+        const Color(0xFF8C30E8).withOpacity(0.4),
+        const Color(0xFF8C30E8).withOpacity(0.0),
       ],
       stops: const [0.0, 0.3, 0.7, 1.0],
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));

@@ -102,7 +102,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           children: [
                             // App Title
                             Text(
-                              'candoo',
+                              'CANDOO',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,

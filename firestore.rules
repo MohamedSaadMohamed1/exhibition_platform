@@ -279,25 +279,17 @@ service cloud.firestore {
     // JOB APPLICATIONS COLLECTION
     // ========================
     match /job_applications/{applicationId} {
-      // Applicants can read their own applications
-      // Job creators can read applications for their jobs
+      // Admin can read all; applicants read their own
       allow read: if isAuthenticated()
-        && (resource.data.userId == currentUserId()
-            || isAdmin()
-            || exists(/databases/$(database)/documents/jobs/$(resource.data.jobId))
-                && get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.organizerId == currentUserId());
+        && (isAdmin() || resource.data.userId == currentUserId());
 
       // Users can create applications
       allow create: if isAuthenticated()
         && request.resource.data.userId == currentUserId()
         && request.resource.data.status == 'pending';
 
-      // Job creators can update application status
-      allow update: if isAuthenticated()
-        && (isAdmin()
-            || (exists(/databases/$(database)/documents/jobs/$(resource.data.jobId))
-                && get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.organizerId == currentUserId()
-                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'feedback', 'reviewedAt', 'updatedAt'])));
+      // Admin or job creator can update application status
+      allow update: if isAuthenticated() && isAdmin();
 
       // Only admin can delete
       allow delete: if isAdmin();
@@ -331,6 +323,14 @@ service cloud.firestore {
 
       allow delete: if isAuthenticated()
         && resource.data.userId == currentUserId();
+    }
+
+    // ========================
+    // COLLECTION GROUP: applications
+    // Required for admin collectionGroup query across all jobs/{jobId}/applications
+    // ========================
+    match /{path=**}/applications/{applicationId} {
+      allow read: if isAdmin();
     }
 
     // ========================

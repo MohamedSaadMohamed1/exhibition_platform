@@ -1312,6 +1312,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
   List<String> _existingImages = [];
   List<XFile> _newImages = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -1348,14 +1349,18 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
-    // Images are now optional. Proceed to loading state directly.
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'User not authenticated. Please log in again.';
+      });
       return;
     }
     
@@ -1382,12 +1387,10 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
         }
       }
     } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload images: $e'), backgroundColor: AppColors.error),
-        );
-      }
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to upload images: $e';
+      });
       return;
     }
 
@@ -1415,7 +1418,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     }
 
     if (mounted) {
-       setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
 
     if (success && mounted) {
@@ -1423,21 +1426,15 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     } else if (mounted) {
       final errorState = ref.read(serviceManagementProvider);
       final error = errorState.error;
-      String errorMessage;
+      String msg;
       if (error is FirebaseException) {
-        errorMessage = 'Firestore error: ${error.message ?? error.code}';
+        msg = 'Firestore error (${error.code}): ${error.message ?? error.code}';
       } else if (error != null) {
-        errorMessage = error.toString();
+        msg = error.toString();
       } else {
-        errorMessage = 'Failed to save service. Please try again.';
+        msg = 'Failed to save service. Please try again.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 5),
-        ),
-      );
+      setState(() => _errorMessage = msg);
     }
   }
 
@@ -1642,6 +1639,28 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
                       ],
                     ),
                     const SizedBox(height: 32),
+                    if (_errorMessage != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.error.withOpacity(0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: AppColors.error, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

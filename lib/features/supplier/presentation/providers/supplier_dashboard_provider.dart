@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../shared/models/service_model.dart';
@@ -57,25 +58,31 @@ final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
     return suppliers.first;
   }
 
-  // AUTO-PROVISION: If the user has 'supplier' role but their supplier document is completely missing 
+  // AUTO-PROVISION: If the user has 'supplier' role but their supplier document is completely missing
   // (e.g. because admin just updated their role without filling out the Create Supplier form)
   // we automatically provision a placeholder profile so they can use the dashboard.
   final user = ref.watch(currentUserProvider).valueOrNull;
   if (user != null && user.role == UserRole.supplier) {
-    final docRef = FirebaseFirestore.instance.collection('suppliers').doc();
-    final newSupplier = SupplierModel(
-      id: docRef.id,
-      name: user.name.isNotEmpty ? '${user.name}\'s Business' : 'My Business',
-      description: 'Please describe your business.',
-      ownerId: userId,
-      createdByAdmin: 'system',
-      createdAt: DateTime.now(),
-      isActive: true, // Auto-Active for visibility
-    );
-    await docRef.set(newSupplier.toFirestore());
-    // Invalidate list to fetch the newly provisioned one on next pull
-    ref.invalidate(userSuppliersProvider);
-    return newSupplier;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('suppliers').doc();
+      final newSupplier = SupplierModel(
+        id: docRef.id,
+        name: user.name.isNotEmpty ? '${user.name}\'s Business' : 'My Business',
+        description: 'Please describe your business.',
+        ownerId: userId,
+        createdByAdmin: 'system',
+        createdAt: DateTime.now(),
+        isActive: true,
+      );
+      await docRef.set(newSupplier.toFirestore());
+      // Invalidate list to fetch the newly provisioned one on next pull
+      ref.invalidate(userSuppliersProvider);
+      return newSupplier;
+    } catch (_) {
+      // Auto-provision failed (e.g. Firestore rules race condition).
+      // Return null — createService will show "Supplier profile not found" error.
+      return null;
+    }
   }
 
   return null;
@@ -236,14 +243,23 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
 
   ServiceManagementNotifier(this.ref) : super(const AsyncValue.data(null));
 
-  /// Get the current supplier (single read to avoid race conditions)
+  /// Get the current supplier — always invalidates the provider first to clear
+  /// any cached error state from a previous failed auto-provision attempt.
   Future<SupplierModel?> _getCurrentSupplier() async {
+    ref.invalidate(userSuppliersProvider);
+    ref.invalidate(currentSupplierProvider);
     return ref.read(currentSupplierProvider.future);
+  }
+
+  /// Force-refresh the Firebase Auth token to avoid stale token permission errors
+  Future<void> _refreshAuthToken() async {
+    await FirebaseAuth.instance.currentUser?.getIdToken(true);
   }
 
   Future<bool> createService(ServiceModel service) async {
     state = const AsyncValue.loading();
     try {
+      await _refreshAuthToken();
       final supplier = await _getCurrentSupplier();
       if (supplier == null) {
         state = AsyncValue.error('Supplier profile not found. Please complete your business profile first.', StackTrace.current);
@@ -270,6 +286,7 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> updateService(ServiceModel service) async {
     state = const AsyncValue.loading();
     try {
+      await _refreshAuthToken();
       final supplier = await _getCurrentSupplier();
       if (supplier == null) {
         state = AsyncValue.error('Supplier profile not found.', StackTrace.current);
@@ -296,6 +313,7 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> deleteService(String serviceId) async {
     state = const AsyncValue.loading();
     try {
+      await _refreshAuthToken();
       await FirebaseFirestore.instance
           .collection('services')
           .doc(serviceId)

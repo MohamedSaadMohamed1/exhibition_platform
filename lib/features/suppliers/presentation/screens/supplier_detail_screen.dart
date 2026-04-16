@@ -9,7 +9,6 @@ import '../../../../shared/models/service_model.dart';
 import '../../../../shared/models/order_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../chat/presentation/providers/chat_provider.dart';
-import '../../../services/presentation/providers/service_provider.dart';
 import '../../../reviews/presentation/providers/review_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../../../../shared/models/review_model.dart';
@@ -462,57 +461,79 @@ class _RequestServiceBottomSheet extends ConsumerStatefulWidget {
 class _RequestServiceBottomSheetState
     extends ConsumerState<_RequestServiceBottomSheet> {
   final _notesController = TextEditingController();
-  final _budgetController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  ServiceModel? _selectedService;
+  final Set<String> _selectedServiceIds = {};
   bool _isLoading = false;
+
+  double get _totalPrice => widget.services
+      .where((s) => _selectedServiceIds.contains(s.id) && s.price != null)
+      .fold(0.0, (sum, s) => sum + s.price!);
 
   @override
   void dispose() {
     _notesController.dispose();
-    _budgetController.dispose();
     super.dispose();
   }
 
-  String _buildRequestMessage(String serviceName, String notes, String budget) {
+  String _buildRequestMessage(
+      List<ServiceModel> selectedServices, String notes) {
     final buffer = StringBuffer();
     buffer.writeln('🔧 Service Request');
     buffer.writeln();
-    buffer.writeln('Service: $serviceName');
-    if (budget.isNotEmpty) {
-      buffer.writeln('Budget: \$$budget');
-    } else {
-      buffer.writeln('Budget: Flexible');
+    buffer.writeln('Services:');
+    for (final s in selectedServices) {
+      if (s.price != null) {
+        buffer.writeln('  • ${s.title} — ${s.formattedPrice}');
+      } else {
+        buffer.writeln('  • ${s.title} — Contact for price');
+      }
     }
     buffer.writeln();
-    buffer.writeln('Notes: $notes');
+    buffer.writeln('Total: ${_totalPrice.toStringAsFixed(2)} KD');
+    if (notes.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Notes: $notes');
+    }
     return buffer.toString().trim();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedServiceIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one service'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      final serviceName =
-          _selectedService?.title ?? 'General Inquiry';
+      final selectedServices = widget.services
+          .where((s) => _selectedServiceIds.contains(s.id))
+          .toList();
       final notes = _notesController.text.trim();
-      final budget = _budgetController.text.trim();
-      final totalPrice = double.tryParse(budget) ?? 0.0;
+      final total = _totalPrice;
 
       // 1. Create order
       final order = OrderModel(
         id: '',
-        serviceId: _selectedService?.id ?? '',
+        serviceId: selectedServices.first.id,
         supplierId: widget.supplier.id,
         customerId: widget.currentUser.id,
-        serviceName: serviceName,
+        serviceIds: selectedServices.map((s) => s.id).toList(),
+        serviceNames: selectedServices.map((s) => s.title).toList(),
+        serviceName: selectedServices.length == 1
+            ? selectedServices.first.title
+            : '${selectedServices.length} services',
         supplierName: widget.supplier.businessName,
         customerName: widget.currentUser.name,
         customerPhone: widget.currentUser.phone,
-        notes: notes,
-        totalPrice: totalPrice,
+        notes: notes.isEmpty ? null : notes,
+        totalPrice: total,
         status: OrderStatus.pending,
         createdAt: DateTime.now(),
       );
@@ -541,7 +562,7 @@ class _RequestServiceBottomSheetState
       await ref.read(chatRepositoryProvider).sendMessage(
             chatId: chatResult.id,
             senderId: widget.currentUser.id,
-            text: _buildRequestMessage(serviceName, notes, budget),
+            text: _buildRequestMessage(selectedServices, notes),
           );
 
       if (mounted) {
@@ -600,10 +621,10 @@ class _RequestServiceBottomSheetState
               ),
             ),
             const SizedBox(height: 20),
-            // Service selector
+            // Services multi-select
             if (widget.services.isNotEmpty) ...[
               const Text(
-                'Service',
+                'Select Services *',
                 style: TextStyle(
                   color: AppColors.textSecondaryDark,
                   fontSize: 13,
@@ -611,43 +632,77 @@ class _RequestServiceBottomSheetState
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: AppColors.cardDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<ServiceModel?>(
-                    value: _selectedService,
-                    isExpanded: true,
-                    dropdownColor: AppColors.cardDark,
-                    hint: const Text(
-                      'General Inquiry',
-                      style: TextStyle(color: AppColors.textSecondaryDark),
-                    ),
-                    items: [
-                      const DropdownMenuItem<ServiceModel?>(
-                        value: null,
-                        child: Text(
-                          'General Inquiry',
-                          style: TextStyle(color: AppColors.textPrimaryDark),
+                child: Column(
+                  children: widget.services.map((service) {
+                    final isChecked = _selectedServiceIds.contains(service.id);
+                    return CheckboxListTile(
+                      value: isChecked,
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedServiceIds.add(service.id);
+                          } else {
+                            _selectedServiceIds.remove(service.id);
+                          }
+                        });
+                      },
+                      title: Text(
+                        service.title,
+                        style: const TextStyle(
+                          color: AppColors.textPrimaryDark,
+                          fontSize: 14,
                         ),
                       ),
-                      ...widget.services.map((s) => DropdownMenuItem<ServiceModel?>(
-                            value: s,
-                            child: Text(
-                              s.title,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimaryDark),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          )),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _selectedService = value),
-                  ),
+                      subtitle: Text(
+                        service.formattedPrice,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      activeColor: AppColors.primary,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    );
+                  }).toList(),
                 ),
               ),
+              if (_selectedServiceIds.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${_selectedServiceIds.length} service(s) selected',
+                        style: const TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        'Total: ${_totalPrice.toStringAsFixed(2)} KD',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
             ],
             // Notes field
@@ -661,7 +716,7 @@ class _RequestServiceBottomSheetState
             const SizedBox(height: 8),
             TextFormField(
               controller: _notesController,
-              maxLines: 4,
+              maxLines: 3,
               style: const TextStyle(color: AppColors.textPrimaryDark),
               decoration: InputDecoration(
                 hintText: 'Describe what you need...',
@@ -677,36 +732,6 @@ class _RequestServiceBottomSheetState
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Message is required' : null,
-            ),
-            const SizedBox(height: 16),
-            // Budget field
-            const Text(
-              'Budget (optional)',
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _budgetController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: AppColors.textPrimaryDark),
-              decoration: InputDecoration(
-                hintText: 'e.g. 500',
-                prefixText: 'KD ',
-                prefixStyle:
-                    const TextStyle(color: AppColors.textSecondaryDark),
-                hintStyle:
-                    const TextStyle(color: AppColors.textSecondaryDark),
-                filled: true,
-                fillColor: AppColors.cardDark,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.all(14),
-              ),
             ),
             const SizedBox(height: 24),
             // Submit button

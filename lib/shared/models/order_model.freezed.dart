@@ -26,6 +26,10 @@ mixin _$OrderModel {
   String get customerId => throw _privateConstructorUsedError;
   String? get eventId =>
       throw _privateConstructorUsedError; // Optional link to event
+  List<String> get serviceIds =>
+      throw _privateConstructorUsedError; // Multiple selected service IDs
+  List<String> get serviceNames =>
+      throw _privateConstructorUsedError; // Multiple selected service names
   String? get serviceName => throw _privateConstructorUsedError;
   String? get supplierName => throw _privateConstructorUsedError;
   String? get customerName => throw _privateConstructorUsedError;
@@ -72,6 +76,8 @@ abstract class $OrderModelCopyWith<$Res> {
       String supplierId,
       String customerId,
       String? eventId,
+      List<String> serviceIds,
+      List<String> serviceNames,
       String? serviceName,
       String? supplierName,
       String? customerName,
@@ -111,6 +117,8 @@ class _$OrderModelCopyWithImpl<$Res, $Val extends OrderModel>
     Object? supplierId = null,
     Object? customerId = null,
     Object? eventId = freezed,
+    Object? serviceIds = null,
+    Object? serviceNames = null,
     Object? serviceName = freezed,
     Object? supplierName = freezed,
     Object? customerName = freezed,
@@ -150,6 +158,14 @@ class _$OrderModelCopyWithImpl<$Res, $Val extends OrderModel>
           ? _value.eventId
           : eventId // ignore: cast_nullable_to_non_nullable
               as String?,
+      serviceIds: null == serviceIds
+          ? _value.serviceIds
+          : serviceIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      serviceNames: null == serviceNames
+          ? _value.serviceNames
+          : serviceNames // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       serviceName: freezed == serviceName
           ? _value.serviceName
           : serviceName // ignore: cast_nullable_to_non_nullable
@@ -236,6 +252,8 @@ abstract class _$$OrderModelImplCopyWith<$Res>
       String supplierId,
       String customerId,
       String? eventId,
+      List<String> serviceIds,
+      List<String> serviceNames,
       String? serviceName,
       String? supplierName,
       String? customerName,
@@ -273,6 +291,8 @@ class __$$OrderModelImplCopyWithImpl<$Res>
     Object? supplierId = null,
     Object? customerId = null,
     Object? eventId = freezed,
+    Object? serviceIds = null,
+    Object? serviceNames = null,
     Object? serviceName = freezed,
     Object? supplierName = freezed,
     Object? customerName = freezed,
@@ -312,6 +332,14 @@ class __$$OrderModelImplCopyWithImpl<$Res>
           ? _value.eventId
           : eventId // ignore: cast_nullable_to_non_nullable
               as String?,
+      serviceIds: null == serviceIds
+          ? _value._serviceIds
+          : serviceIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      serviceNames: null == serviceNames
+          ? _value._serviceNames
+          : serviceNames // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       serviceName: freezed == serviceName
           ? _value.serviceName
           : serviceName // ignore: cast_nullable_to_non_nullable
@@ -393,6 +421,8 @@ class _$OrderModelImpl extends _OrderModel {
       required this.supplierId,
       required this.customerId,
       this.eventId,
+      final List<String> serviceIds = const [],
+      final List<String> serviceNames = const [],
       this.serviceName,
       this.supplierName,
       this.customerName,
@@ -410,7 +440,9 @@ class _$OrderModelImpl extends _OrderModel {
       @TimestampConverter() this.updatedAt,
       @NullableTimestampConverter() this.confirmedAt,
       @NullableTimestampConverter() this.completedAt})
-      : super._();
+      : _serviceIds = serviceIds,
+        _serviceNames = serviceNames,
+        super._();
 
   factory _$OrderModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$OrderModelImplFromJson(json);
@@ -426,6 +458,28 @@ class _$OrderModelImpl extends _OrderModel {
   @override
   final String? eventId;
 // Optional link to event
+  final List<String> _serviceIds;
+// Optional link to event
+  @override
+  @JsonKey()
+  List<String> get serviceIds {
+    if (_serviceIds is EqualUnmodifiableListView) return _serviceIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_serviceIds);
+  }
+
+// Multiple selected service IDs
+  final List<String> _serviceNames;
+// Multiple selected service IDs
+  @override
+  @JsonKey()
+  List<String> get serviceNames {
+    if (_serviceNames is EqualUnmodifiableListView) return _serviceNames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_serviceNames);
+  }
+
+// Multiple selected service names
   @override
   final String? serviceName;
   @override
@@ -470,7 +524,7 @@ class _$OrderModelImpl extends _OrderModel {
 
   @override
   String toString() {
-    return 'OrderModel(id: $id, serviceId: $serviceId, supplierId: $supplierId, customerId: $customerId, eventId: $eventId, serviceName: $serviceName, supplierName: $supplierName, customerName: $customerName, customerPhone: $customerPhone, notes: $notes, totalPrice: $totalPrice, quantity: $quantity, serviceDate: $serviceDate, serviceEndDate: $serviceEndDate, status: $status, rejectionReason: $rejectionReason, cancellationReason: $cancellationReason, cancelledBy: $cancelledBy, createdAt: $createdAt, updatedAt: $updatedAt, confirmedAt: $confirmedAt, completedAt: $completedAt)';
+    return 'OrderModel(id: $id, serviceId: $serviceId, supplierId: $supplierId, customerId: $customerId, eventId: $eventId, serviceIds: $serviceIds, serviceNames: $serviceNames, serviceName: $serviceName, supplierName: $supplierName, customerName: $customerName, customerPhone: $customerPhone, notes: $notes, totalPrice: $totalPrice, quantity: $quantity, serviceDate: $serviceDate, serviceEndDate: $serviceEndDate, status: $status, rejectionReason: $rejectionReason, cancellationReason: $cancellationReason, cancelledBy: $cancelledBy, createdAt: $createdAt, updatedAt: $updatedAt, confirmedAt: $confirmedAt, completedAt: $completedAt)';
   }
 
   @override
@@ -486,6 +540,10 @@ class _$OrderModelImpl extends _OrderModel {
             (identical(other.customerId, customerId) ||
                 other.customerId == customerId) &&
             (identical(other.eventId, eventId) || other.eventId == eventId) &&
+            const DeepCollectionEquality()
+                .equals(other._serviceIds, _serviceIds) &&
+            const DeepCollectionEquality()
+                .equals(other._serviceNames, _serviceNames) &&
             (identical(other.serviceName, serviceName) ||
                 other.serviceName == serviceName) &&
             (identical(other.supplierName, supplierName) ||
@@ -529,6 +587,8 @@ class _$OrderModelImpl extends _OrderModel {
         supplierId,
         customerId,
         eventId,
+        const DeepCollectionEquality().hash(_serviceIds),
+        const DeepCollectionEquality().hash(_serviceNames),
         serviceName,
         supplierName,
         customerName,
@@ -571,6 +631,8 @@ abstract class _OrderModel extends OrderModel {
           required final String supplierId,
           required final String customerId,
           final String? eventId,
+          final List<String> serviceIds,
+          final List<String> serviceNames,
           final String? serviceName,
           final String? supplierName,
           final String? customerName,
@@ -604,6 +666,10 @@ abstract class _OrderModel extends OrderModel {
   String get customerId;
   @override
   String? get eventId; // Optional link to event
+  @override
+  List<String> get serviceIds; // Multiple selected service IDs
+  @override
+  List<String> get serviceNames; // Multiple selected service names
   @override
   String? get serviceName;
   @override

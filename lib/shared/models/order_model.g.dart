@@ -13,6 +13,14 @@ _$OrderModelImpl _$$OrderModelImplFromJson(Map<String, dynamic> json) =>
       supplierId: json['supplierId'] as String,
       customerId: json['customerId'] as String,
       eventId: json['eventId'] as String?,
+      serviceIds: (json['serviceIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      serviceNames: (json['serviceNames'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       serviceName: json['serviceName'] as String?,
       supplierName: json['supplierName'] as String?,
       customerName: json['customerName'] as String?,
@@ -43,6 +51,8 @@ Map<String, dynamic> _$$OrderModelImplToJson(_$OrderModelImpl instance) =>
       'supplierId': instance.supplierId,
       'customerId': instance.customerId,
       'eventId': instance.eventId,
+      'serviceIds': instance.serviceIds,
+      'serviceNames': instance.serviceNames,
       'serviceName': instance.serviceName,
       'supplierName': instance.supplierName,
       'customerName': instance.customerName,

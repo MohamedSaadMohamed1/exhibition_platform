@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -8,10 +7,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../shared/models/event_model.dart';
 import '../../../../shared/models/order_model.dart';
+import '../../../../shared/models/service_model.dart';
 import 'organizer_suppliers_screen.dart';
 import '../../../../shared/models/supplier_model.dart';
 import '../../../../shared/providers/providers.dart';
+import '../../../chat/presentation/providers/chat_provider.dart';
 import '../../../events/presentation/providers/events_provider.dart';
+import '../../../suppliers/presentation/providers/supplier_provider.dart';
 
 class BookSupplierScreen extends ConsumerStatefulWidget {
   final SupplierModel supplier;
@@ -24,17 +26,20 @@ class BookSupplierScreen extends ConsumerStatefulWidget {
 
 class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _budgetController = TextEditingController();
   final _notesController = TextEditingController();
 
   String? _selectedEventId;
-  String? _selectedEventTitle;
   DateTime? _selectedDate;
   bool _isSubmitting = false;
 
+  final Set<String> _selectedServiceIds = {};
+
+  double _totalPrice(List<ServiceModel> services) => services
+      .where((s) => _selectedServiceIds.contains(s.id) && s.price != null)
+      .fold(0.0, (sum, s) => sum + s.price!);
+
   @override
   void dispose() {
-    _budgetController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -52,7 +57,33 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
     }
   }
 
-  Future<void> _submit() async {
+  String _buildRequestMessage(
+      List<ServiceModel> services, double total, String notes) {
+    final buffer = StringBuffer();
+    buffer.writeln('📋 Booking Request');
+    buffer.writeln();
+    buffer.writeln('Services:');
+    for (final s in services) {
+      if (s.price != null) {
+        buffer.writeln('  • ${s.title} — ${s.formattedPrice}');
+      } else {
+        buffer.writeln('  • ${s.title} — Contact for price');
+      }
+    }
+    buffer.writeln();
+    buffer.writeln('Total: ${total.toStringAsFixed(2)} KD');
+    if (_selectedDate != null) {
+      buffer.writeln(
+          'Date: ${DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate!)}');
+    }
+    if (notes.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Notes: $notes');
+    }
+    return buffer.toString().trim();
+  }
+
+  Future<void> _submit(List<ServiceModel> allServices) async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedEventId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,28 +103,43 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
       );
       return;
     }
+    if (_selectedServiceIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one service'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 
     final currentUser = ref.read(currentUserProvider).valueOrNull;
     final orderRepository = ref.read(orderRepositoryProvider);
 
-    final budget = double.tryParse(_budgetController.text.trim()) ?? 0.0;
+    final selectedServices = allServices
+        .where((s) => _selectedServiceIds.contains(s.id))
+        .toList();
+    final total = _totalPrice(allServices);
+    final notes = _notesController.text.trim();
 
     final order = OrderModel(
       id: const Uuid().v4(),
-      serviceId: widget.supplier.id,
+      serviceId: selectedServices.first.id,
       supplierId: widget.supplier.id,
       customerId: currentUser?.id ?? '',
       eventId: _selectedEventId,
-      serviceName: _selectedEventTitle,
+      serviceIds: selectedServices.map((s) => s.id).toList(),
+      serviceNames: selectedServices.map((s) => s.title).toList(),
+      serviceName: selectedServices.length == 1
+          ? selectedServices.first.title
+          : '${selectedServices.length} services',
       supplierName: widget.supplier.name,
       customerName: currentUser?.name,
       serviceDate: _selectedDate,
-      totalPrice: budget,
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
+      totalPrice: total,
+      notes: notes.isEmpty ? null : notes,
       status: OrderStatus.pending,
       createdAt: DateTime.now(),
     );
@@ -101,10 +147,10 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
     final result = await orderRepository.createOrder(order);
 
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
 
     result.fold(
       (failure) {
+        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(failure.message),
@@ -112,20 +158,60 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
           ),
         );
       },
-      (_) {
+      (_) async {
         // Refresh organizer supplier bookings list
         final userId = currentUser?.id;
         if (userId != null) {
           ref.invalidate(organizerSupplierBookingsProvider(userId));
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Booking request sent to ${widget.supplier.name}!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        context.pop();
+
+        // Create or get chat between organizer and supplier
+        try {
+          final chatResult = await ref.read(getOrCreateChatProvider((
+            currentUserId: currentUser!.id,
+            otherUserId: widget.supplier.userId,
+            currentUserName: currentUser.name,
+            otherUserName: widget.supplier.name,
+            currentUserImage: currentUser.profileImage,
+            otherUserImage: widget.supplier.profileImage,
+          )).future);
+
+          if (chatResult != null && mounted) {
+            await ref.read(chatRepositoryProvider).sendMessage(
+                  chatId: chatResult.id,
+                  senderId: currentUser.id,
+                  text: _buildRequestMessage(selectedServices, total, notes),
+                );
+            if (mounted) {
+              setState(() => _isSubmitting = false);
+              context.push('/chats/${chatResult.id}');
+            }
+          } else {
+            if (mounted) {
+              setState(() => _isSubmitting = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      'Booking request sent to ${widget.supplier.name}!'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+              context.pop();
+            }
+          }
+        } catch (_) {
+          if (mounted) {
+            setState(() => _isSubmitting = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Booking request sent to ${widget.supplier.name}!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            context.pop();
+          }
+        }
       },
     );
   }
@@ -136,6 +222,8 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
     final eventsAsync = currentUserId != null
         ? ref.watch(organizerEventsProvider(currentUserId))
         : const AsyncValue<List<EventModel>>.data([]);
+    final servicesAsync =
+        ref.watch(supplierServicesProvider(widget.supplier.id));
 
     return Scaffold(
       appBar: AppBar(
@@ -195,9 +283,6 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
                     onChanged: (value) {
                       setState(() {
                         _selectedEventId = value;
-                        _selectedEventTitle = events
-                            .firstWhere((e) => e.id == value)
-                            .title;
                       });
                     },
                     validator: (v) =>
@@ -253,27 +338,117 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Budget
+              // Select Services
               Text(
-                'Budget (Optional)',
+                'Select Services *',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _budgetController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-                decoration: const InputDecoration(
-                  hintText: 'e.g., 500',
-                  prefixText: 'KD ',
-                  prefixIcon: Icon(Icons.attach_money),
-                  border: OutlineInputBorder(),
+              servicesAsync.when(
+                data: (services) {
+                  if (services.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.grey600),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'This supplier has no services listed.',
+                        style:
+                            TextStyle(color: AppColors.textSecondaryDark),
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.grey600),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: services.map((service) {
+                            final isChecked =
+                                _selectedServiceIds.contains(service.id);
+                            return CheckboxListTile(
+                              value: isChecked,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedServiceIds.add(service.id);
+                                  } else {
+                                    _selectedServiceIds.remove(service.id);
+                                  }
+                                });
+                              },
+                              title: Text(
+                                service.title,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimaryDark,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: Text(
+                                service.formattedPrice,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              activeColor: AppColors.organizerColor,
+                              controlAffinity:
+                                  ListTileControlAffinity.leading,
+                              dense: true,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      if (_selectedServiceIds.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.organizerColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color:
+                                  AppColors.organizerColor.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${_selectedServiceIds.length} service(s) selected',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondaryDark,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                'Total: ${_totalPrice(services).toStringAsFixed(2)} KD',
+                                style: const TextStyle(
+                                  color: AppColors.organizerColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+                loading: () => const LinearProgressIndicator(),
+                error: (_, __) => const Text(
+                  'Failed to load services',
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
               const SizedBox(height: 16),
@@ -298,10 +473,24 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
               ),
               const SizedBox(height: 32),
 
-              AppButton(
-                text: _isSubmitting ? 'Sending Request...' : 'Send Booking Request',
-                onPressed: _isSubmitting ? null : _submit,
-                icon: Icons.send,
+              servicesAsync.when(
+                data: (services) => AppButton(
+                  text: _isSubmitting
+                      ? 'Sending Request...'
+                      : 'Send Booking Request',
+                  onPressed: _isSubmitting ? null : () => _submit(services),
+                  icon: Icons.send,
+                ),
+                loading: () => AppButton(
+                  text: 'Send Booking Request',
+                  onPressed: null,
+                  icon: Icons.send,
+                ),
+                error: (_, __) => AppButton(
+                  text: 'Send Booking Request',
+                  onPressed: null,
+                  icon: Icons.send,
+                ),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
@@ -384,8 +573,7 @@ class _SupplierInfoCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.star,
-                        color: Colors.amber, size: 14),
+                    const Icon(Icons.star, color: Colors.amber, size: 14),
                     const SizedBox(width: 2),
                     Text(
                       supplier.rating.toStringAsFixed(1),

@@ -20,9 +20,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
-  String _selectedCountryCode = '+966';
-  String _selectedCountryFlag = '🇸🇦';
-  String _selectedCountry = 'Saudi Arabia';
+  String _selectedCountryCode = '+965';
+  String _selectedCountryFlag = '🇰🇼';
+  String _selectedCountry = 'Kuwait';
 
   @override
   void dispose() {
@@ -40,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleSignIn() {
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty || phone.length < 9) {
+    if (phone.isEmpty || phone.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Please enter a valid phone number'),

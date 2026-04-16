@@ -225,12 +225,17 @@ service cloud.firestore {
     // SUPPLIERS COLLECTION
     // ========================
     match /suppliers/{supplierId} {
-      // Anyone authenticated can read active suppliers
+      // Anyone authenticated can read active suppliers or their own profile
+      // NOTE: isAdmin() removed intentionally — it calls getUserData() (a Firestore get())
+      // inside a LIST query rule which can cause permission-denied on the entire query.
+      // Admins can still read their own docs; admin-specific reads use the Firebase Console.
       allow read: if isAuthenticated()
-        && (resource.data.isActive == true || resource.data.ownerId == currentUserId() || isAdmin());
+        && (resource.data.isActive == true || resource.data.ownerId == currentUserId());
 
-      // Only admin can create suppliers, or suppliers can auto-provision their own profile
-      allow create: if isAdmin() || (isSupplier() && request.resource.data.ownerId == currentUserId());
+      // Admin can create suppliers; authenticated users can auto-provision their own profile
+      // Note: uses request.auth.uid directly to avoid getUserData() race conditions
+      allow create: if isAdmin()
+        || (isAuthenticated() && request.resource.data.ownerId == request.auth.uid);
 
       // Supplier owner can update their own profile
       allow update: if isAuthenticated()
@@ -250,7 +255,8 @@ service cloud.firestore {
     // SERVICES COLLECTION
     // ========================
     match /services/{serviceId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // ========================

@@ -16,6 +16,8 @@ class OrderModel with _$OrderModel {
     required String supplierId,
     required String customerId,
     String? eventId, // Optional link to event
+    @Default([]) List<String> serviceIds, // Multiple selected service IDs
+    @Default([]) List<String> serviceNames, // Multiple selected service names
     String? serviceName,
     String? supplierName,
     String? customerName,

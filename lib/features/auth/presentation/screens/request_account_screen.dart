@@ -23,8 +23,8 @@ class _RequestAccountScreenState extends ConsumerState<RequestAccountScreen> {
   final _companyController = TextEditingController();
   final _notesController = TextEditingController();
   
-  String _selectedCountryCode = '+966';
-  String _selectedCountryFlag = '🇸🇦';
+  String _selectedCountryCode = '+965';
+  String _selectedCountryFlag = '🇰🇼';
   UserRole _selectedRole = UserRole.organizer;
 
   @override
@@ -58,7 +58,7 @@ class _RequestAccountScreenState extends ConsumerState<RequestAccountScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty || phone.length < 9) {
+    if (phone.isEmpty || phone.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid phone number'),

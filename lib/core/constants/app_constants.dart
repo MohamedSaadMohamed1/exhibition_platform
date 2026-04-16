@@ -62,6 +62,40 @@ abstract class StoragePaths {
   static const String resumes = 'resumes';
 }
 
+/// Keys used in FCM message data payloads
+abstract class NotificationDataKeys {
+  static const String type = 'type';
+  static const String orderId = 'orderId';
+  static const String chatId = 'chatId';
+  static const String exhibitionId = 'exhibitionId';
+  static const String jobId = 'jobId';
+  static const String bookingId = 'bookingId';
+  static const String senderId = 'senderId';
+  static const String status = 'status';
+  static const String userId = 'userId';
+  static const String applicationId = 'applicationId';
+  static const String paymentStatus = 'paymentStatus';
+}
+
+/// Values used for the `type` key in FCM data payloads
+abstract class NotificationDataTypes {
+  static const String order = 'order';
+  static const String orderStatus = 'order_status';
+  static const String message = 'message';
+  static const String newMessage = 'new_message';
+  static const String exhibition = 'exhibition';
+  static const String exhibitionUpdate = 'exhibition_update';
+  static const String job = 'job';
+  static const String jobApplication = 'job_application';
+  static const String jobApplicationStatus = 'job_application_status';
+  static const String booking = 'booking';
+  static const String bookingStatus = 'booking_status';
+  static const String bookingRequest = 'booking_request';
+  static const String accountApproval = 'account_approval';
+  static const String account = 'account';
+  static const String payment = 'payment';
+}
+
 /// Asset paths
 abstract class AssetPaths {
   static const String images = 'assets/images';

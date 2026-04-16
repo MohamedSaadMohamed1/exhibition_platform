@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/logger.dart';
+import 'features/chat/presentation/providers/chat_provider.dart';
 import 'router/app_router.dart';
 
 /// Main application widget
@@ -30,9 +32,19 @@ class _ExhibitionPlatformAppState extends ConsumerState<ExhibitionPlatformApp> {
         tag: 'FCM',
       );
 
-      if (message.notification != null && mounted) {
-        _showNotificationSnackbar(message);
+      if (message.notification == null || !mounted) return;
+
+      // Suppress chat notifications when the user is already viewing that chat
+      final activeChatId = ref.read(activeChatIdProvider);
+      final msgType = message.data['type'] as String?;
+      final msgChatId = message.data['chatId'] as String?;
+      if ((msgType == 'new_message' || msgType == 'message') &&
+          msgChatId != null &&
+          msgChatId == activeChatId) {
+        return;
       }
+
+      _showNotificationSnackbar(message);
     });
 
     // Handle notification taps when app is in background
@@ -90,46 +102,48 @@ class _ExhibitionPlatformAppState extends ConsumerState<ExhibitionPlatformApp> {
   void _handleNotificationTap(RemoteMessage message) {
     final data = message.data;
     final router = ref.read(goRouterProvider);
-    final type = data['type'] as String?;
+    final type = data[NotificationDataKeys.type] as String?;
 
     AppLogger.debug('Handling notification tap: type=$type', tag: 'FCM');
 
     switch (type) {
-      case 'order':
-      case 'order_status':
-        final orderId = data['orderId'] as String?;
+      case NotificationDataTypes.order:
+      case NotificationDataTypes.orderStatus:
+        final orderId = data[NotificationDataKeys.orderId] as String?;
         if (orderId != null) {
           router.push('/orders/$orderId');
         }
         break;
 
-      case 'message':
-      case 'new_message':
-        final roomId = data['roomId'] as String?;
-        if (roomId != null) {
-          router.push('/chat/$roomId');
+      case NotificationDataTypes.message:
+      case NotificationDataTypes.newMessage:
+        final chatId = data[NotificationDataKeys.chatId] as String?;
+        if (chatId != null) {
+          router.push('/chats/$chatId');
         }
         break;
 
-      case 'exhibition':
-      case 'exhibition_update':
-        final exhibitionId = data['exhibitionId'] as String?;
+      case NotificationDataTypes.exhibition:
+      case NotificationDataTypes.exhibitionUpdate:
+        final exhibitionId = data[NotificationDataKeys.exhibitionId] as String?;
         if (exhibitionId != null) {
           router.push('/exhibitions/$exhibitionId');
         }
         break;
 
-      case 'job':
-      case 'job_application':
-        final jobId = data['jobId'] as String?;
+      case NotificationDataTypes.job:
+      case NotificationDataTypes.jobApplication:
+      case NotificationDataTypes.jobApplicationStatus:
+        final jobId = data[NotificationDataKeys.jobId] as String?;
         if (jobId != null) {
           router.push('/jobs/$jobId');
         }
         break;
 
-      case 'booking':
-      case 'booking_status':
-        final bookingId = data['bookingId'] as String?;
+      case NotificationDataTypes.booking:
+      case NotificationDataTypes.bookingStatus:
+      case NotificationDataTypes.bookingRequest:
+        final bookingId = data[NotificationDataKeys.bookingId] as String?;
         if (bookingId != null) {
           router.push('/bookings/$bookingId');
         }

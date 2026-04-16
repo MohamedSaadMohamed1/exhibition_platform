@@ -4,6 +4,10 @@ import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../domain/repositories/chat_repository.dart';
 
+/// Tracks which chatId the user is currently viewing.
+/// Used to suppress foreground push notifications for the active chat.
+final activeChatIdProvider = StateProvider<String?>((ref) => null);
+
 /// Chats state
 class ChatsState {
   final List<ChatModel> chats;

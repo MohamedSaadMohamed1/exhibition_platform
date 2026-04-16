@@ -55,19 +55,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _onNavTap(int index) {
     switch (index) {
       case 0:
-        // Home - already here, just ensure index is 0
         setState(() => _currentNavIndex = 0);
         break;
       case 1:
-        // Favorites/Interested - navigate without changing index
         context.push(AppRoutes.interestedEvents);
         break;
       case 2:
-        // Search - show sheet without changing index
         _showSearchSheet();
         break;
       case 3:
-        // Profile - navigate without changing index
+        context.push(AppRoutes.chats);
+        break;
+      case 4:
         context.push(AppRoutes.profile);
         break;
     }
@@ -1096,6 +1095,17 @@ class _JobApplicationFormSheetState
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in to submit an application.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -1105,6 +1115,7 @@ class _JobApplicationFormSheetState
 
       await docRef.set({
         'id': docRef.id,
+        'userId': userId,
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),

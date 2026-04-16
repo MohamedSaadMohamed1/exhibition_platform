@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -13,6 +16,18 @@ class NotificationService {
   final FirebaseMessagingDataSource _messagingDataSource;
   final FirebaseFirestore _firestore;
   final Ref _ref;
+
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  static const AndroidNotificationChannel _androidChannel =
+      AndroidNotificationChannel(
+    'high_importance_channel',
+    'High Importance Notifications',
+    description: 'This channel is used for important notifications.',
+    importance: Importance.high,
+    playSound: true,
+  );
 
   /// Flag to track if messaging is supported on this platform
   bool _isMessagingSupported = false;
@@ -44,6 +59,7 @@ class NotificationService {
         }
       } else {
         _isMessagingSupported = true;
+        await _initializeLocalNotifications();
       }
 
       // Request permissions
@@ -67,6 +83,54 @@ class NotificationService {
       AppLogger.error('Failed to initialize notification service', error: e, tag: 'Notifications');
       _isMessagingSupported = false;
     }
+  }
+
+  /// Initialize local notifications plugin and Android channel
+  Future<void> _initializeLocalNotifications() async {
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false, // Already requested via FCM
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    await _localNotifications.initialize(
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
+    );
+
+    if (Platform.isAndroid) {
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_androidChannel);
+    }
+  }
+
+  /// Show a local notification (used for foreground display when needed)
+  Future<void> showLocalNotification(RemoteMessage message) async {
+    if (kIsWeb) return;
+    final notification = message.notification;
+    if (notification == null) return;
+
+    await _localNotifications.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _androidChannel.id,
+          _androidChannel.name,
+          channelDescription: _androidChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
   }
 
   /// Update FCM token for current user

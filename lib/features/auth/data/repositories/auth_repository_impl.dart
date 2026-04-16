@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
@@ -13,6 +14,9 @@ import '../../domain/repositories/auth_repository.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+
+  /// Stores the web ConfirmationResult for OTP verification on web platform
+  ConfirmationResult? _webConfirmationResult;
 
   AuthRepositoryImpl({
     required FirebaseAuth auth,
@@ -30,8 +34,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     try {
       final fullPhone = '$countryCode$phoneNumber';
-      AppLogger.info('🔥 Firebase verifyPhoneNumber starting: $fullPhone', tag: 'AuthRepo');
+      AppLogger.info('🔥 sendOtp starting: $fullPhone', tag: 'AuthRepo');
 
+      // Web uses signInWithPhoneNumber (reCAPTCHA-based)
+      if (kIsWeb) {
+        final confirmationResult = await _auth.signInWithPhoneNumber(fullPhone);
+        _webConfirmationResult = confirmationResult;
+        AppLogger.info('🔥 Web: codeSent, verificationId=${confirmationResult.verificationId}', tag: 'AuthRepo');
+        return Right(confirmationResult.verificationId);
+      }
+
+      // Mobile uses verifyPhoneNumber
       final completer = Completer<Either<Failure, String>>();
 
       await _auth.verifyPhoneNumber(
@@ -73,12 +86,21 @@ class AuthRepositoryImpl implements AuthRepository {
     required String otp,
   }) async {
     try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: otp,
-      );
+      final UserCredential userCredential;
 
-      final userCredential = await _auth.signInWithCredential(credential);
+      if (kIsWeb && _webConfirmationResult != null) {
+        // Web: confirm OTP via ConfirmationResult
+        userCredential = await _webConfirmationResult!.confirm(otp);
+        _webConfirmationResult = null;
+      } else {
+        // Mobile: use PhoneAuthCredential
+        final credential = PhoneAuthProvider.credential(
+          verificationId: verificationId,
+          smsCode: otp,
+        );
+        userCredential = await _auth.signInWithCredential(credential);
+      }
+
       final user = userCredential.user;
 
       if (user == null) {
@@ -215,7 +237,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     try {
       await _usersCollection.doc(userId).update({
-        'fcmToken': token,
+        'fcmTokens': FieldValue.arrayUnion([token]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return const Right(null);

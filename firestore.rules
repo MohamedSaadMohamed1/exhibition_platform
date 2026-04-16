@@ -98,6 +98,10 @@ service cloud.firestore {
       allow update: if isAuthenticated()
         && (resource.data.organizerId == currentUserId() || isAdmin());
 
+      // Any authenticated user can increment/decrement interestedCount (via interest toggle)
+      allow update: if isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['interestedCount']);
+
       allow delete: if isAuthenticated()
         && (resource.data.organizerId == currentUserId() || isAdmin());
 
@@ -344,7 +348,7 @@ service cloud.firestore {
 
       allow update: if isAuthenticated()
         && resource.data.userId == currentUserId()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
 
       allow delete: if isAuthenticated()
         && resource.data.userId == currentUserId();

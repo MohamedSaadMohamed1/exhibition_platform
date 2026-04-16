@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'core/config/environment.dart';
 import 'core/config/injection.dart';
@@ -16,7 +18,28 @@ import 'firebase_options.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  AppLogger.debug('Handling background message: ${message.messageId}');
+
+  final notification = message.notification;
+  if (notification == null) return;
+
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  final plugin = FlutterLocalNotificationsPlugin();
+  await plugin.initialize(const InitializationSettings(android: androidSettings));
+
+  await plugin.show(
+    notification.hashCode,
+    notification.title,
+    notification.body,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'high_importance_channel',
+        'High Importance Notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    ),
+    payload: jsonEncode(message.data),
+  );
 }
 
 /// Bootstrap function to initialize the app

@@ -55,7 +55,6 @@ class ChatRepositoryImpl implements ChatRepository {
           otherUserId: 0,
         },
         createdAt: DateTime.now(),
-        lastMessageAt: DateTime.now(),
       );
 
       await _chatsCollection.doc(chatId).set(chat.toFirestore());
@@ -74,19 +73,11 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       final snapshot = await _chatsCollection
           .where('participants', arrayContains: userId)
+          .orderBy('lastMessageAt', descending: true)
+          .limit(limit)
           .get();
 
-      final chats = snapshot.docs
-          .map((doc) => ChatModel.fromFirestore(doc))
-          .toList();
-      // Sort locally to bypass missing composite index in Firebase
-      chats.sort((a, b) {
-        final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bTime.compareTo(aTime);
-      });
-
-      return Right(chats.take(limit).toList());
+      return Right(snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList());
     } catch (e) {
       return Left(e.toFailure());
     }
@@ -235,17 +226,10 @@ class ChatRepositoryImpl implements ChatRepository {
   Stream<List<ChatModel>> watchUserChats(String userId) {
     return _chatsCollection
         .where('participants', arrayContains: userId)
+        .orderBy('lastMessageAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-      final chats = snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList();
-      // Sort locally to bypass missing composite index in Firebase
-      chats.sort((a, b) {
-        final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bTime.compareTo(aTime);
-      });
-      return chats;
-    });
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList());
   }
 
   @override

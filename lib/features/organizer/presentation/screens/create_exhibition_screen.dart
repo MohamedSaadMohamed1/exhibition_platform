@@ -27,6 +27,7 @@ class _CreateExhibitionScreenState
   DateTime? _endDate;
   bool _isCreating = false;
   Uint8List? _bannerImageBytes;
+  Uint8List? _planImageBytes;
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -35,6 +36,17 @@ class _CreateExhibitionScreenState
       final bytes = await image.readAsBytes();
       setState(() {
         _bannerImageBytes = bytes;
+      });
+    }
+  }
+
+  Future<void> _pickPlanImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _planImageBytes = bytes;
       });
     }
   }
@@ -118,6 +130,33 @@ class _CreateExhibitionScreenState
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Event created but image upload failed'),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+            }
+          }
+        }
+
+        // Upload floor plan image if selected
+        if (_planImageBytes != null) {
+          try {
+            final uploadService = ref.read(imageUploadServiceProvider);
+            final planResult = await uploadService.uploadImageFromBytes(
+              bytes: _planImageBytes!,
+              storagePath: 'events/${event.id}',
+              fileName: 'plan.jpg',
+              generateThumbnail: false,
+            );
+            await eventRepo.updateEvent(
+              eventId: event.id,
+              planPic: planResult.url,
+            );
+          } catch (e) {
+            // Floor plan upload failed — non-critical
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Event created but floor plan upload failed'),
                   backgroundColor: AppColors.warning,
                 ),
               );
@@ -282,6 +321,88 @@ class _CreateExhibitionScreenState
                               label: const Text('Upload Image'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.organizerColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Floor Plan Image Upload
+              const Text(
+                'Floor Plan',
+                style: TextStyle(
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _pickPlanImage,
+                child: Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.grey800, width: 2),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: _planImageBytes != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(
+                              _planImageBytes!,
+                              fit: BoxFit.contain,
+                            ),
+                            Container(
+                              color: Colors.black.withOpacity(0.4),
+                              child: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.edit, color: Colors.white, size: 28),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Change Floor Plan',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.map_outlined,
+                              size: 48,
+                              color: AppColors.grey600,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add Floor Plan',
+                              style: TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: _pickPlanImage,
+                              icon: const Icon(Icons.upload, size: 16),
+                              label: const Text('Upload Plan'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.organizerColor,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                               ),
                             ),
                           ],

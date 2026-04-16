@@ -197,7 +197,7 @@ class _BatchCreateDialogState extends ConsumerState<BatchCreateDialog> {
                 ],
                 decoration: const InputDecoration(
                   labelText: 'Price (same for all)',
-                  prefixText: '\$ ',
+                  prefixText: 'KD ',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {

@@ -7,6 +7,7 @@ import '../../../../core/widgets/error_widget.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../shared/models/booth_model.dart';
 import '../../../../shared/providers/providers.dart';
+import '../../../events/presentation/providers/events_provider.dart';
 
 class BoothsScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -25,6 +26,7 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
   Widget build(BuildContext context) {
     final boothsStream = ref.watch(boothsStreamProvider(widget.eventId));
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final eventAsync = ref.watch(eventStreamProvider(widget.eventId));
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
@@ -95,6 +97,9 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
                 ],
               ),
             ),
+          // Floor plan image
+          if (eventAsync.valueOrNull?.planPic != null)
+            _PlanImage(url: eventAsync.valueOrNull!.planPic!),
           // Legend
           Container(
             padding: const EdgeInsets.all(12),
@@ -348,6 +353,11 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
     final currentUser = ref.read(currentUserProvider).valueOrNull;
     if (currentUser == null) return;
 
+    final event = ref.read(eventStreamProvider(widget.eventId)).valueOrNull;
+    final organizerId = event?.organizerId ?? '';
+    final organizerName = event?.organizerName ?? 'Organizer';
+    final eventTitle = event?.title ?? '';
+
     Navigator.pop(context);
 
     // Show loading
@@ -361,14 +371,15 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
           eventId: widget.eventId,
           boothId: booth.id,
           exhibitorId: currentUser.id,
-          organizerId: '', // Will be fetched from event
+          organizerId: organizerId,
           totalPrice: booth.price,
         );
 
-    Navigator.pop(context); // Close loading
+    if (!mounted) return;
 
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
+        Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(failure.message),
@@ -376,7 +387,40 @@ class _BoothsScreenState extends ConsumerState<BoothsScreen> {
           ),
         );
       },
-      (booking) {
+      (booking) async {
+        // Auto-create chat between exhibitor and organizer
+        if (organizerId.isNotEmpty) {
+          try {
+            final chatRepo = ref.read(chatRepositoryProvider);
+            final chatResult = await chatRepo.getOrCreateChat(
+              currentUserId: currentUser.id,
+              otherUserId: organizerId,
+              currentUserName: currentUser.name,
+              otherUserName: organizerName,
+              currentUserImage: currentUser.profileImage,
+            );
+
+            await chatResult.fold(
+              (_) async {},
+              (chat) async {
+                await chatRepo.sendMessage(
+                  chatId: chat.id,
+                  senderId: currentUser.id,
+                  text: 'Booth Booking Request\n'
+                      'Event: $eventTitle\n'
+                      'Booth: ${booth.boothNumber}\n'
+                      'Price: \$${booth.price.toStringAsFixed(2)}\n'
+                      'Status: Pending confirmation',
+                );
+              },
+            );
+          } catch (_) {
+            // Chat creation is non-critical — booking already succeeded
+          }
+        }
+
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Booking request submitted successfully!'),
@@ -611,6 +655,61 @@ class _FilterChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PlanImage extends StatelessWidget {
+  final String url;
+
+  const _PlanImage({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showFullScreen(context),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        height: 180,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(url, fit: BoxFit.contain),
+            const Positioned(
+              top: 8,
+              right: 8,
+              child: Icon(Icons.fullscreen, color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFullScreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: const Text(
+              'Floor Plan',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          body: InteractiveViewer(
+            child: Center(child: Image.network(url)),
+          ),
+        ),
       ),
     );
   }

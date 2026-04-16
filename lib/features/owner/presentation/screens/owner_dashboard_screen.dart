@@ -196,7 +196,7 @@ class _DashboardTab extends ConsumerWidget {
                 ),
                 _StatCard(
                   title: 'Revenue',
-                  value: '\$125k',
+                  value: '125k KD',
                   icon: Icons.attach_money,
                   color: AppColors.success,
                   trend: '+23%',
@@ -272,7 +272,7 @@ class _DashboardTab extends ConsumerWidget {
             _ActivityItem(
               icon: Icons.payment,
               title: 'Payment received',
-              subtitle: '\$2,500 from Food Expo',
+              subtitle: '2,500 KD from Food Expo',
               time: '1 day ago',
               color: AppColors.success,
             ),

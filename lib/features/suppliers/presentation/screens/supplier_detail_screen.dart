@@ -694,7 +694,7 @@ class _RequestServiceBottomSheetState
               style: const TextStyle(color: AppColors.textPrimaryDark),
               decoration: InputDecoration(
                 hintText: 'e.g. 500',
-                prefixText: '\$ ',
+                prefixText: 'KD ',
                 prefixStyle:
                     const TextStyle(color: AppColors.textSecondaryDark),
                 hintStyle:

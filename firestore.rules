@@ -46,6 +46,11 @@ service cloud.firestore {
       return hasRole('exhibitor');
     }
 
+    // Check if user is visitor
+    function isVisitor() {
+      return hasRole('visitor');
+    }
+
     // Check if user is active
     function isActiveUser() {
       return getUserData().isActive == true;
@@ -58,16 +63,22 @@ service cloud.firestore {
       // Anyone authenticated can read user profiles
       allow read: if isAuthenticated();
 
-      // Users can create their own document on first login (exhibitor only)
+      // Users can create their own document on first login (visitor only)
       allow create: if isAuthenticated()
         && currentUserId() == userId
-        && request.resource.data.role == 'exhibitor'
+        && request.resource.data.role == 'visitor'
         && request.resource.data.createdBy == 'self';
 
       // Admin can create organizer and supplier accounts
       allow create: if isAdmin()
         && request.resource.data.role in ['organizer', 'supplier']
         && request.resource.data.createdBy == currentUserId();
+
+      // Account migration: user claims an admin-pre-created account (phone verified via Firebase Auth)
+      allow create: if isAuthenticated()
+        && currentUserId() == userId
+        && request.resource.data.role in ['organizer', 'supplier']
+        && request.resource.data.phone == request.auth.token.phone_number;
 
       // Users can update their own profile (except role)
       allow update: if isAuthenticated()
@@ -79,6 +90,10 @@ service cloud.firestore {
 
       // Only admin can delete users
       allow delete: if isAdmin();
+
+      // Account migration: user can delete the temporary pre-created doc (matched by phone)
+      allow delete: if isAuthenticated()
+        && resource.data.phone == request.auth.token.phone_number;
     }
 
     // ========================
@@ -115,6 +130,15 @@ service cloud.firestore {
         // Only event organizer can create/update/delete booths
         allow create, update, delete: if isAuthenticated()
           && (get(/databases/$(database)/documents/events/$(eventId)).data.organizerId == currentUserId() || isAdmin());
+
+        // Visitors and exhibitors can reserve an available booth (booking flow)
+        allow update: if isAuthenticated()
+          && (isVisitor() || isExhibitor())
+          && resource.data.status == 'available'
+          && request.resource.data.status == 'reserved'
+          && request.resource.data.reservedBy == currentUserId()
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'reservedBy', 'reservedAt', 'updatedAt']);
       }
     }
 
@@ -129,9 +153,9 @@ service cloud.firestore {
             || resource.data.organizerId == currentUserId()
             || isAdmin());
 
-      // Only exhibitors can create booking requests
+      // Exhibitors and visitors can create booking requests
       allow create: if isAuthenticated()
-        && isExhibitor()
+        && (isExhibitor() || isVisitor())
         && request.resource.data.exhibitorId == currentUserId()
         && request.resource.data.status == 'pending';
 
@@ -212,6 +236,11 @@ service cloud.firestore {
       allow update: if isAuthenticated()
         && (resource.data.ownerId == currentUserId() || isAdmin())
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerId', 'createdByAdmin', 'createdAt']));
+
+      // Account migration: allow updating ownerId when user claims their supplier profile (phone verified)
+      allow update: if isAuthenticated()
+        && resource.data.contactPhone == request.auth.token.phone_number
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerId', 'updatedAt']);
 
       // Only admin can delete
       allow delete: if isAdmin();

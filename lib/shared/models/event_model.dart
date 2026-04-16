@@ -22,6 +22,7 @@ class EventModel {
   final double? longitude;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String? planPic;
 
   const EventModel({
     required this.id,
@@ -37,12 +38,13 @@ class EventModel {
     this.boothCount = 0,
     required this.organizerId,
     this.organizerName,
-    this.status = EventStatus.draft,
+    this.status = EventStatus.published,
     this.category,
     this.latitude,
     this.longitude,
     required this.createdAt,
     this.updatedAt,
+    this.planPic,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -66,6 +68,7 @@ class EventModel {
       longitude: (json['longitude'] as num?)?.toDouble(),
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: json['updatedAt'] != null ? _parseDateTime(json['updatedAt']) : null,
+      planPic: json['planPic'] as String?,
     );
   }
 
@@ -111,6 +114,7 @@ class EventModel {
       'longitude': longitude,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'planPic': planPic,
     };
   }
 
@@ -173,6 +177,7 @@ class EventModel {
     double? longitude,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? planPic,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -194,6 +199,7 @@ class EventModel {
       longitude: longitude ?? this.longitude,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      planPic: planPic ?? this.planPic,
     );
   }
 }

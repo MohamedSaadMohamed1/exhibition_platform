@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -705,12 +706,21 @@ class _QuickActions extends StatelessWidget {
   const _QuickActions();
 
   void _showAddServiceDialog(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const _ServiceFormSheet(),
-    );
+    ).then((success) {
+      if (success == true && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Service created successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -1068,22 +1078,40 @@ class _ServicesTab extends ConsumerWidget {
   }
 
   void _showAddServiceDialog(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const _ServiceFormSheet(),
-    );
+    ).then((success) {
+      if (success == true && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Service created successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    });
   }
 
   void _showEditServiceDialog(
       BuildContext context, WidgetRef ref, ServiceModel service) {
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _ServiceFormSheet(service: service),
-    );
+    ).then((success) {
+      if (success == true && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Service updated successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    });
   }
 
   void _showDeleteConfirmation(
@@ -1391,21 +1419,25 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     }
 
     if (success && mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, true); // pass true = success
+    } else if (mounted) {
+      final errorState = ref.read(serviceManagementProvider);
+      final error = errorState.error;
+      String errorMessage;
+      if (error is FirebaseException) {
+        errorMessage = 'Firestore error: ${error.message ?? error.code}';
+      } else if (error != null) {
+        errorMessage = error.toString();
+      } else {
+        errorMessage = 'Failed to save service. Please try again.';
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.service != null
-              ? 'Service updated successfully'
-              : 'Service created successfully'),
-           backgroundColor: AppColors.success,
+          content: Text(errorMessage),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 5),
         ),
       );
-    } else if (mounted) {
-       final errorState = ref.read(serviceManagementProvider);
-       final errorMessage = errorState.error?.toString() ?? 'Failed to perform operation';
-       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: AppColors.error),
-       );
     }
   }
 

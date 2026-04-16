@@ -41,7 +41,7 @@ final userSuppliersProvider = FutureProvider<List<SupplierModel>>((ref) async {
 
 /// Provider for current user's ACTIVE supplier profile
 final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
-  final suppliers = await ref.watch(userSuppliersProvider.future);
+  final suppliers = await ref.read(userSuppliersProvider.future);
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return null;
 
@@ -236,38 +236,33 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
 
   ServiceManagementNotifier(this.ref) : super(const AsyncValue.data(null));
 
-  /// Get the services collection reference for current supplier
-  Future<CollectionReference<Map<String, dynamic>>?> _getServicesCollection() async {
-    final supplier = await ref.read(currentSupplierProvider.future);
-    if (supplier == null) return null;
-
-    return FirebaseFirestore.instance
-        .collection('services');
+  /// Get the current supplier (single read to avoid race conditions)
+  Future<SupplierModel?> _getCurrentSupplier() async {
+    return ref.read(currentSupplierProvider.future);
   }
 
   Future<bool> createService(ServiceModel service) async {
     state = const AsyncValue.loading();
     try {
-      final servicesCollection = await _getServicesCollection();
-      if (servicesCollection == null) {
-        state = AsyncValue.error('Supplier not found', StackTrace.current);
+      final supplier = await _getCurrentSupplier();
+      if (supplier == null) {
+        state = AsyncValue.error('Supplier profile not found. Please complete your business profile first.', StackTrace.current);
         return false;
       }
 
-      final supplier = await ref.read(currentSupplierProvider.future);
-      final docRef = servicesCollection.doc();
+      final docRef = FirebaseFirestore.instance.collection('services').doc();
       await docRef.set({
         ...service.toFirestore(),
         'id': docRef.id,
-        'supplierId': supplier!.id,
+        'supplierId': supplier.id,
         'supplierName': supplier.businessName,
       });
       ref.invalidate(myServicesProvider);
       ref.invalidate(supplierStatsProvider);
       state = const AsyncValue.data(null);
       return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
       return false;
     }
   }
@@ -275,24 +270,25 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> updateService(ServiceModel service) async {
     state = const AsyncValue.loading();
     try {
-      final servicesCollection = await _getServicesCollection();
-      if (servicesCollection == null) {
-        state = AsyncValue.error('Supplier not found', StackTrace.current);
+      final supplier = await _getCurrentSupplier();
+      if (supplier == null) {
+        state = AsyncValue.error('Supplier profile not found.', StackTrace.current);
         return false;
       }
 
-      final supplier = await ref.read(currentSupplierProvider.future);
-      
       final updateData = service.toUpdateMap();
-      updateData['supplierId'] = supplier!.id;
+      updateData['supplierId'] = supplier.id;
       updateData['supplierName'] = supplier.businessName;
 
-      await servicesCollection.doc(service.id).update(updateData);
+      await FirebaseFirestore.instance
+          .collection('services')
+          .doc(service.id)
+          .update(updateData);
       ref.invalidate(myServicesProvider);
       state = const AsyncValue.data(null);
       return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
       return false;
     }
   }
@@ -300,19 +296,16 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> deleteService(String serviceId) async {
     state = const AsyncValue.loading();
     try {
-      final servicesCollection = await _getServicesCollection();
-      if (servicesCollection == null) {
-        state = AsyncValue.error('Supplier not found', StackTrace.current);
-        return false;
-      }
-
-      await servicesCollection.doc(serviceId).delete();
+      await FirebaseFirestore.instance
+          .collection('services')
+          .doc(serviceId)
+          .delete();
       ref.invalidate(myServicesProvider);
       ref.invalidate(supplierStatsProvider);
       state = const AsyncValue.data(null);
       return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
       return false;
     }
   }
@@ -320,13 +313,10 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> toggleServiceStatus(String serviceId, bool isActive) async {
     state = const AsyncValue.loading();
     try {
-      final servicesCollection = await _getServicesCollection();
-      if (servicesCollection == null) {
-        state = AsyncValue.error('Supplier not found', StackTrace.current);
-        return false;
-      }
-
-      await servicesCollection.doc(serviceId).update({
+      await FirebaseFirestore.instance
+          .collection('services')
+          .doc(serviceId)
+          .update({
         'isActive': isActive,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -334,8 +324,8 @@ class ServiceManagementNotifier extends StateNotifier<AsyncValue<void>> {
       ref.invalidate(supplierStatsProvider);
       state = const AsyncValue.data(null);
       return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
       return false;
     }
   }

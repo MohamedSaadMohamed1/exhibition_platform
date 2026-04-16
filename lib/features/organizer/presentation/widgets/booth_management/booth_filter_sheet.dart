@@ -121,7 +121,7 @@ class _BoothFilterSheetState extends State<BoothFilterSheet> {
                   child: TextField(
                     decoration: const InputDecoration(
                       labelText: 'Min Price',
-                      prefixText: '\$',
+                      prefixText: 'KD ',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -141,7 +141,7 @@ class _BoothFilterSheetState extends State<BoothFilterSheet> {
                   child: TextField(
                     decoration: const InputDecoration(
                       labelText: 'Max Price',
-                      prefixText: '\$',
+                      prefixText: 'KD ',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,

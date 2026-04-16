@@ -36,6 +36,7 @@ abstract class EventRepository {
     String? category,
     double? latitude,
     double? longitude,
+    String? planPic,
   });
 
   /// Update event (Organizer only - own events)
@@ -51,6 +52,7 @@ abstract class EventRepository {
     List<String>? images,
     String? category,
     EventStatus? status,
+    String? planPic,
   });
 
   /// Delete event (Organizer only - own events)

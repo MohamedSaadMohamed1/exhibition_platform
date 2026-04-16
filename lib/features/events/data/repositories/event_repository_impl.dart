@@ -121,6 +121,7 @@ class EventRepositoryImpl implements EventRepository {
     String? category,
     double? latitude,
     double? longitude,
+    String? planPic,
   }) async {
     try {
       final eventId = _uuid.v4();
@@ -139,10 +140,11 @@ class EventRepositoryImpl implements EventRepository {
         category: category,
         latitude: latitude,
         longitude: longitude,
-        status: EventStatus.draft,
+        status: EventStatus.published,
         interestedCount: 0,
         boothCount: 0,
         createdAt: DateTime.now(),
+        planPic: planPic,
       );
 
       await _eventsCollection.doc(eventId).set(event.toFirestore());
@@ -166,6 +168,7 @@ class EventRepositoryImpl implements EventRepository {
     List<String>? images,
     String? category,
     EventStatus? status,
+    String? planPic,
   }) async {
     try {
       final updates = <String, dynamic>{
@@ -182,6 +185,7 @@ class EventRepositoryImpl implements EventRepository {
       if (images != null) updates['images'] = images;
       if (category != null) updates['category'] = category;
       if (status != null) updates['status'] = status.value;
+      if (planPic != null) updates['planPic'] = planPic;
 
       await _eventsCollection.doc(eventId).update(updates);
 

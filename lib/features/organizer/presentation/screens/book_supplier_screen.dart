@@ -271,7 +271,7 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
                 ],
                 decoration: const InputDecoration(
                   hintText: 'e.g., 500',
-                  prefixText: '\$ ',
+                  prefixText: 'KD ',
                   prefixIcon: Icon(Icons.attach_money),
                   border: OutlineInputBorder(),
                 ),

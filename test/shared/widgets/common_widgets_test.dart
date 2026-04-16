@@ -143,7 +143,7 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: Text(
-              '\$99.99',
+              '99.99 KD',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -154,7 +154,7 @@ void main() {
       );
 
       // Assert
-      expect(find.text('\$99.99'), findsOneWidget);
+      expect(find.text('99.99 KD'), findsOneWidget);
     });
   });
 

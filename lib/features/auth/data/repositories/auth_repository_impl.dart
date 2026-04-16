@@ -107,21 +107,67 @@ class AuthRepositoryImpl implements AuthRepository {
         return Left(AuthFailure.unknown('User not found after sign in'));
       }
 
-      // Check if user document exists
+      // Check if user document exists by Firebase Auth UID
       final userDoc = await _usersCollection.doc(user.uid).get(
-        const GetOptions(source: Source.serverAndCache),
+        const GetOptions(source: Source.server),
       );
 
       if (userDoc.exists) {
         // Existing user - return user data
         return Right(UserModel.fromFirestore(userDoc));
+      }
+
+      // Check if admin pre-created an account with this phone number
+      final phoneQuery = await _usersCollection
+          .where('phone', isEqualTo: user.phoneNumber ?? '')
+          .limit(1)
+          .get();
+
+      if (phoneQuery.docs.isNotEmpty) {
+        // Admin pre-created account found - migrate it to use the real Firebase Auth UID
+        final preCreatedDoc = phoneQuery.docs.first;
+        final oldTempUid = preCreatedDoc.id;
+        final preCreatedData = Map<String, dynamic>.from(preCreatedDoc.data());
+
+        AppLogger.info(
+          '🔄 Migrating pre-created account from tempUid=$oldTempUid to authUid=${user.uid}',
+          tag: 'AuthRepo',
+        );
+
+        final batch = _firestore.batch();
+
+        // Create new document with the real Firebase Auth UID
+        preCreatedData['updatedAt'] = FieldValue.serverTimestamp();
+        batch.set(_usersCollection.doc(user.uid), preCreatedData);
+
+        // Delete the old document with the temporary UUID
+        batch.delete(_usersCollection.doc(oldTempUid));
+
+        // Update any supplier documents that reference the old temporary UID
+        final supplierQuery = await _firestore
+            .collection(FirestoreCollections.suppliers)
+            .where('ownerId', isEqualTo: oldTempUid)
+            .get();
+
+        for (final supplierDoc in supplierQuery.docs) {
+          batch.update(supplierDoc.reference, {'ownerId': user.uid});
+        }
+
+        await batch.commit();
+
+        // Return the migrated user with the real UID
+        final migratedUser = UserModel.fromJson({
+          'id': user.uid,
+          ...preCreatedData,
+        });
+        return Right(migratedUser);
       } else {
-        // New user (Visitor) - create document
+        // New self-registered user - create as visitor
         final newUser = UserModel(
           id: user.uid,
           name: '',
           phone: user.phoneNumber ?? '',
-          role: UserRole.visitor, // Self-registered users are visitors
+          role: UserRole.visitor, // Self-registered users are visitors (matches Firestore rule)
           createdBy: 'self',
           createdAt: DateTime.now(),
         );
@@ -151,9 +197,9 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       final userDoc = await _usersCollection.doc(user.uid).get(
-        const GetOptions(source: Source.serverAndCache),
+        const GetOptions(source: Source.server),
       );
-      
+
       if (!userDoc.exists) {
         return const Right(null);
       }

@@ -168,7 +168,7 @@ class BoothFormFields extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Price *',
             hintText: 'Enter price',
-            prefixText: '\$ ',
+            prefixText: 'KD ',
             prefixIcon: Icon(Icons.attach_money),
             border: OutlineInputBorder(),
           ),

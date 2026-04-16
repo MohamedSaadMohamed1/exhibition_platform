@@ -76,7 +76,7 @@ class OrderModel with _$OrderModel {
   bool get canBeCompleted => isInProgress;
 
   /// Get formatted price
-  String get formattedPrice => '\$${totalPrice.toStringAsFixed(2)}';
+  String get formattedPrice => '${totalPrice.toStringAsFixed(2)} KD';
 
   /// Get status display text
   String get statusDisplayText {

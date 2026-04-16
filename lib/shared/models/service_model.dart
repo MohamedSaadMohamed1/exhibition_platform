@@ -73,9 +73,9 @@ class ServiceModel with _$ServiceModel {
     if (price == null) return 'Contact for price';
     final priceStr = price!.toStringAsFixed(price! == price!.roundToDouble() ? 0 : 2);
     if (priceUnit != null) {
-      return '\$$priceStr $priceUnit';
+      return '$priceStr KD $priceUnit';
     }
-    return '\$$priceStr';
+    return '$priceStr KD';
   }
 
   /// Check if service has reviews

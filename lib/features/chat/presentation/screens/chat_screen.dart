@@ -208,10 +208,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               bottom: MediaQuery.of(context).padding.bottom + 8,
             ),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: AppColors.surfaceDark,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(0.2),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -222,8 +222,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
+                      hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
                       fillColor: AppColors.grey800,
                       border: OutlineInputBorder(
@@ -299,14 +301,14 @@ class _MessageBubble extends StatelessWidget {
             Text(
               message.text,
               style: TextStyle(
-                color: isMe ? Colors.white : AppColors.textPrimary,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               message.createdAt.toChatTime(),
               style: TextStyle(
-                color: isMe ? Colors.white70 : AppColors.textSecondary,
+                color: Colors.white70,
                 fontSize: 10,
               ),
             ),

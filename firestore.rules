@@ -16,14 +16,29 @@ service cloud.firestore {
       return request.auth.uid;
     }
 
-    // Get user document
+    // ---------------------------------------------------------------------------
+    // Role helpers use Firebase Auth custom claims (set by setRoleClaimsOnUserWrite
+    // Cloud Function) so NO extra Firestore read is required per rule evaluation.
+    //
+    // Fallback: if the token doesn't carry a role claim yet (e.g. first login
+    // before the function fires), fall back to a Firestore document read so the
+    // app never hard-locks users on the first session after migration.
+    // ---------------------------------------------------------------------------
+
+    // Get user document (fallback only — prefer custom claims)
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(currentUserId())).data;
     }
 
-    // Check user role
+    // Check user role — custom claim first, Firestore fallback.
+    // request.auth.token.get('role', null) returns null if the claim isn't set yet
+    // (e.g. first login before the Cloud Function fires). Falls back to Firestore read.
     function hasRole(role) {
-      return isAuthenticated() && getUserData().role == role;
+      return isAuthenticated() && (
+        request.auth.token.get('role', null) != null
+          ? request.auth.token.role == role
+          : getUserData().role == role
+      );
     }
 
     // Check if user is admin
@@ -53,7 +68,7 @@ service cloud.firestore {
 
     // Check if user is active
     function isActiveUser() {
-      return getUserData().isActive == true;
+      return isAuthenticated() && getUserData().isActive == true;
     }
 
     // ========================
@@ -91,9 +106,11 @@ service cloud.firestore {
       // Only admin can delete users
       allow delete: if isAdmin();
 
-      // Account migration: user can delete the temporary pre-created doc (matched by phone)
+      // Account migration: user can delete the temporary pre-created doc (matched by phone).
+      // Extra guard: only admin-pre-created docs (createdBy != 'self') can be claimed this way.
       allow delete: if isAuthenticated()
-        && resource.data.phone == request.auth.token.phone_number;
+        && resource.data.phone == request.auth.token.phone_number
+        && resource.data.createdBy != 'self';
     }
 
     // ========================

@@ -43,7 +43,8 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     final eventsState = ref.watch(eventsNotifierProvider);
-    final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final currentUser = ref.watch(currentUserProvider).valueOrNull
+        ?? ref.watch(authNotifierProvider).user;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,

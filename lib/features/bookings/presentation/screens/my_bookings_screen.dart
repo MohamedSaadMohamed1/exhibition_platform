@@ -171,7 +171,7 @@ class _BookingCard extends StatelessWidget {
                           ),
                     ),
                     Text(
-                      '\$${booking.totalPrice?.toStringAsFixed(2) ?? '-'}',
+                      'KD ${booking.totalPrice?.toStringAsFixed(2) ?? '-'}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,

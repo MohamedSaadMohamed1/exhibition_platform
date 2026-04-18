@@ -384,7 +384,7 @@ class ImagePickerState {
 
 /// Image picker notifier
 class ImagePickerNotifier extends Notifier<ImagePickerState> {
-  late final ImageUploadService _uploadService;
+  late ImageUploadService _uploadService;
 
   @override
   ImagePickerState build() {

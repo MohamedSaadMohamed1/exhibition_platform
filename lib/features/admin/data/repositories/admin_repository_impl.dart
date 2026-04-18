@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
+import '../../../../core/utils/validators.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/models/supplier_model.dart';
 import '../../../../shared/models/account_request_model.dart';
@@ -93,11 +94,17 @@ class AdminRepositoryImpl implements AdminRepository {
     required String phone,
     String? email,
     required String createdByAdminId,
+    // countryCode defaults to +966; pass the actual value from the form picker
+    String countryCode = '+966',
   }) async {
     try {
+      // Normalize to E.164 so the Firestore migration rule
+      // (request.resource.data.phone == request.auth.token.phone_number) passes.
+      final normalizedPhone = Validators.normalizePhone(phone, countryCode);
+
       // Check if phone already exists
       final existingUser = await _usersCollection
-          .where('phone', isEqualTo: phone)
+          .where('phone', isEqualTo: normalizedPhone)
           .limit(1)
           .get();
 
@@ -111,7 +118,7 @@ class AdminRepositoryImpl implements AdminRepository {
       final newOrganizer = UserModel(
         id: tempUid,
         name: name,
-        phone: phone,
+        phone: normalizedPhone,
         email: email,
         role: UserRole.organizer,
         createdBy: createdByAdminId,
@@ -138,11 +145,17 @@ class AdminRepositoryImpl implements AdminRepository {
     String? category,
     String? email,
     required String createdByAdminId,
+    // countryCode defaults to +966; pass the actual value from the form picker
+    String countryCode = '+966',
   }) async {
     try {
+      // Normalize to E.164 so the Firestore migration rule
+      // (request.resource.data.phone == request.auth.token.phone_number) passes.
+      final normalizedPhone = Validators.normalizePhone(phone, countryCode);
+
       // Check if phone already exists
       final existingUser = await _usersCollection
-          .where('phone', isEqualTo: phone)
+          .where('phone', isEqualTo: normalizedPhone)
           .limit(1)
           .get();
 
@@ -158,7 +171,7 @@ class AdminRepositoryImpl implements AdminRepository {
       final newUser = UserModel(
         id: userUid,
         name: name,
-        phone: phone,
+        phone: normalizedPhone,
         email: email,
         role: UserRole.supplier,
         createdBy: createdByAdminId,
@@ -175,7 +188,7 @@ class AdminRepositoryImpl implements AdminRepository {
         category: category,
         ownerId: userUid,
         ownerName: name,
-        contactPhone: phone,
+        contactPhone: normalizedPhone,
         contactEmail: email,
         createdByAdmin: createdByAdminId,
         isActive: true,

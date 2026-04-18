@@ -74,7 +74,7 @@ class OrganizerBookingState {
 
 /// Organizer booking requests notifier
 class OrganizerBookingNotifier extends FamilyNotifier<OrganizerBookingState, String> {
-  late final BookingRepository _bookingRepository;
+  late BookingRepository _bookingRepository;
 
   @override
   OrganizerBookingState build(String organizerId) {

@@ -53,7 +53,7 @@ class BoothGridItem extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '\$${booth.price.toStringAsFixed(0)}',
+              'KD ${booth.price.toStringAsFixed(0)}',
               style: TextStyle(
                 color: _color.withOpacity(0.8),
                 fontSize: 10,

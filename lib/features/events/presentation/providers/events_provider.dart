@@ -38,7 +38,7 @@ class EventsState {
 
 /// Events Notifier
 class EventsNotifier extends Notifier<EventsState> {
-  late final EventRepository _eventRepository;
+  late EventRepository _eventRepository;
 
   @override
   EventsState build() {

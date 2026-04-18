@@ -38,7 +38,7 @@ class ServicesState {
 
 /// Services notifier
 class ServicesNotifier extends Notifier<ServicesState> {
-  late final ServiceRepository _serviceRepository;
+  late ServiceRepository _serviceRepository;
 
   @override
   ServicesState build() {

@@ -39,7 +39,7 @@ class SuppliersState {
 
 /// Suppliers notifier
 class SuppliersNotifier extends Notifier<SuppliersState> {
-  late final SupplierRepository _supplierRepository;
+  late SupplierRepository _supplierRepository;
 
   @override
   SuppliersState build() {

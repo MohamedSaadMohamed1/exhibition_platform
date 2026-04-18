@@ -62,24 +62,25 @@ Future<void> bootstrap(
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
-      // Configure Firestore settings for web immediately after init,
-      // before any Firestore reads/writes
-      if (kIsWeb) {
-        try {
-          FirebaseFirestore.instance.settings = const Settings(
-            persistenceEnabled: false,
-            cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-          );
-          AppLogger.info(
-            'Firestore configured for web without persistence',
-            tag: 'Bootstrap',
-          );
-        } catch (e) {
-          AppLogger.warning(
-            'Failed to configure Firestore settings: $e',
-            tag: 'Bootstrap',
-          );
-        }
+      // Disable Firestore offline persistence on ALL platforms.
+      // Persistence causes stale data from a previous user's session to appear
+      // after account switching (logout → login as different user). Since the app
+      // requires an active internet connection for Firebase Auth anyway, disabling
+      // persistence ensures every query always returns fresh server data.
+      try {
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: false,
+          cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        );
+        AppLogger.info(
+          'Firestore persistence disabled (all platforms)',
+          tag: 'Bootstrap',
+        );
+      } catch (e) {
+        AppLogger.warning(
+          'Failed to configure Firestore settings: $e',
+          tag: 'Bootstrap',
+        );
       }
 
       // Set up background message handler (only for mobile)

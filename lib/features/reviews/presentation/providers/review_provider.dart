@@ -39,7 +39,7 @@ class ReviewsState {
 /// Target reviews notifier
 class TargetReviewsNotifier
     extends FamilyNotifier<ReviewsState, ({String targetId, ReviewType? type})> {
-  late final ReviewRepository _reviewRepository;
+  late ReviewRepository _reviewRepository;
 
   @override
   ReviewsState build(({String targetId, ReviewType? type}) params) {

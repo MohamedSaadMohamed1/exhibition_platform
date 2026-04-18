@@ -134,10 +134,17 @@ class AuthRepositoryImpl implements AuthRepository {
           tag: 'AuthRepo',
         );
 
+        // Ensure the stored phone exactly matches Firebase Auth's E.164 format.
+        // The Firestore migration rule checks:
+        //   request.resource.data.phone == request.auth.token.phone_number
+        // If formats differ, the batch create is denied with permission-denied.
+        preCreatedData['phone'] = user.phoneNumber ?? preCreatedData['phone'];
+        preCreatedData['id'] = user.uid;
+        preCreatedData['updatedAt'] = FieldValue.serverTimestamp();
+
         final batch = _firestore.batch();
 
         // Create new document with the real Firebase Auth UID
-        preCreatedData['updatedAt'] = FieldValue.serverTimestamp();
         batch.set(_usersCollection.doc(user.uid), preCreatedData);
 
         // Delete the old document with the temporary UUID
@@ -150,15 +157,20 @@ class AuthRepositoryImpl implements AuthRepository {
             .get();
 
         for (final supplierDoc in supplierQuery.docs) {
-          batch.update(supplierDoc.reference, {'ownerId': user.uid});
+          batch.update(supplierDoc.reference, {
+            'ownerId': user.uid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
         }
 
         await batch.commit();
 
-        // Return the migrated user with the real UID
+        // Return the migrated user with the real UID.
+        // NOTE: spread preCreatedData first, then override 'id' so the real
+        // Firebase Auth UID is not overwritten by the old temp UUID in the map.
         final migratedUser = UserModel.fromJson({
-          'id': user.uid,
           ...preCreatedData,
+          'id': user.uid,
         });
         return Right(migratedUser);
       } else {

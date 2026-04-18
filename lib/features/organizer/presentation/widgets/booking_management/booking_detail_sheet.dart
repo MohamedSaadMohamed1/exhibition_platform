@@ -115,7 +115,7 @@ class _BookingDetailSheetState extends ConsumerState<BookingDetailSheet> {
             if (widget.booking.totalPrice != null)
               _InfoRow(
                 label: 'Price',
-                value: '\$${widget.booking.totalPrice!.toStringAsFixed(2)}',
+                value: 'KD ${widget.booking.totalPrice!.toStringAsFixed(2)}',
                 icon: Icons.attach_money,
                 valueColor: AppColors.success,
               ),

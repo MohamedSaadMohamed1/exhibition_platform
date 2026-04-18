@@ -617,6 +617,60 @@ export const onJobApplicationCreated = functions.firestore
   });
 
 // ========================
+// CUSTOM CLAIMS — ROLE SYNC
+// ========================
+//
+// Keeps Firebase Auth custom claims in sync with the Firestore user document.
+// Benefits:
+//   • Role is available in request.auth.token.role inside Firestore rules
+//     without an extra Firestore read — faster, cheaper, more reliable.
+//   • isActive is embedded so deactivated users are blocked at the token level.
+//
+// Usage in firestore.rules:
+//   function hasRole(role) {
+//     return request.auth.token.role == role;
+//   }
+//   function isActiveUser() {
+//     return request.auth.token.isActive == true;
+//   }
+
+export const setRoleClaimsOnUserWrite = functions.firestore
+  .document('users/{userId}')
+  .onWrite(async (change, context) => {
+    const { userId } = context.params;
+
+    // Document deleted — revoke claims
+    if (!change.after.exists) {
+      try {
+        await admin.auth().setCustomUserClaims(userId, {});
+      } catch (err) {
+        // User may not exist in Auth (pre-created temp doc) — that's fine
+        console.log(`Could not clear claims for ${userId}:`, err);
+      }
+      return null;
+    }
+
+    const data = change.after.data()!;
+    const role: string = data.role ?? 'visitor';
+    const isActive: boolean = data.isActive ?? true;
+
+    // Only update claims when role or isActive actually changed
+    const before = change.before.exists ? change.before.data()! : {};
+    if (before.role === role && before.isActive === isActive) return null;
+
+    try {
+      await admin.auth().setCustomUserClaims(userId, { role, isActive });
+      console.log(`Custom claims set for ${userId}: role=${role}, isActive=${isActive}`);
+    } catch (err) {
+      // The Firestore doc may have a temp UUID that doesn't exist in Firebase Auth yet.
+      // This is expected for admin-pre-created accounts before first login — ignore silently.
+      console.log(`Could not set claims for ${userId} (may be pre-auth temp doc):`, err);
+    }
+
+    return null;
+  });
+
+// ========================
 // ANALYTICS & AGGREGATIONS
 // ========================
 

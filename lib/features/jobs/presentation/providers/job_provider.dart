@@ -39,7 +39,7 @@ class JobsState {
 
 /// Jobs notifier
 class JobsNotifier extends Notifier<JobsState> {
-  late final JobRepository _jobRepository;
+  late JobRepository _jobRepository;
 
   @override
   JobsState build() {

@@ -95,7 +95,7 @@ class BoothListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '\$${booth.price.toStringAsFixed(0)}',
+                    'KD ${booth.price.toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: AppColors.organizerColor,
                           fontWeight: FontWeight.bold,

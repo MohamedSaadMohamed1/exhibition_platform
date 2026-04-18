@@ -91,7 +91,7 @@ class _ManageBoothsScreenState extends ConsumerState<ManageBoothsScreen> {
                               ),
                             if (state.filter.minPrice != null || state.filter.maxPrice != null)
                               _FilterChip(
-                                label: 'Price: \$${state.filter.minPrice?.toStringAsFixed(0) ?? '0'} - \$${state.filter.maxPrice?.toStringAsFixed(0) ?? '∞'}',
+                                label: 'Price: KD ${state.filter.minPrice?.toStringAsFixed(0) ?? '0'} - KD ${state.filter.maxPrice?.toStringAsFixed(0) ?? '∞'}',
                                 onRemove: () {
                                   notifier.applyFilter(
                                     state.filter.copyWith(
@@ -343,7 +343,7 @@ class _ManageBoothsScreenState extends ConsumerState<ManageBoothsScreen> {
               children: [
                 const Text('Price'),
                 Text(
-                  '\$${booth.price.toStringAsFixed(2)}',
+                  'KD ${booth.price.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: AppColors.organizerColor,
                         fontWeight: FontWeight.bold,

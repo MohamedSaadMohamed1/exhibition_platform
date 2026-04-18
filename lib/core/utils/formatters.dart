@@ -91,7 +91,7 @@ class Formatters {
   }
 
   /// Format currency
-  static String formatCurrency(double amount, {String currency = 'USD'}) {
+  static String formatCurrency(double amount, {String currency = 'KWD'}) {
     final formatter = NumberFormat.currency(
       symbol: _getCurrencySymbol(currency),
       decimalDigits: 2,
@@ -99,8 +99,8 @@ class Formatters {
     return formatter.format(amount);
   }
 
-  /// Format compact currency - "$1.5K"
-  static String formatCompactCurrency(double amount, {String currency = 'USD'}) {
+  /// Format compact currency - "KD 1.5K"
+  static String formatCompactCurrency(double amount, {String currency = 'KWD'}) {
     final formatter = NumberFormat.compactCurrency(
       symbol: _getCurrencySymbol(currency),
       decimalDigits: 1,
@@ -111,6 +111,8 @@ class Formatters {
   /// Get currency symbol
   static String _getCurrencySymbol(String currency) {
     switch (currency.toUpperCase()) {
+      case 'KWD':
+        return 'KD ';
       case 'USD':
         return '\$';
       case 'EUR':

@@ -145,7 +145,7 @@ class OrganizerAnalyticsScreen extends ConsumerWidget {
             Expanded(
               child: _StatCard(
                 title: 'Total Revenue',
-                value: '\$${analytics.totalRevenue.toStringAsFixed(0)}',
+                value: 'KD ${analytics.totalRevenue.toStringAsFixed(0)}',
                 icon: Icons.attach_money,
                 color: AppColors.success,
               ),
@@ -337,7 +337,7 @@ class OrganizerAnalyticsScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '\$${analytics.totalRevenue.toStringAsFixed(0)}',
+                  'KD ${analytics.totalRevenue.toStringAsFixed(0)}',
                   style: const TextStyle(
                     color: AppColors.success,
                     fontWeight: FontWeight.bold,

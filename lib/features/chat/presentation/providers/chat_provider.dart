@@ -35,7 +35,7 @@ class ChatsState {
 
 /// User chats notifier
 class UserChatsNotifier extends FamilyNotifier<ChatsState, String> {
-  late final ChatRepository _chatRepository;
+  late ChatRepository _chatRepository;
 
   @override
   ChatsState build(String userId) {
@@ -111,7 +111,7 @@ class MessagesState {
 
 /// Chat messages notifier
 class ChatMessagesNotifier extends FamilyNotifier<MessagesState, String> {
-  late final ChatRepository _chatRepository;
+  late ChatRepository _chatRepository;
 
   @override
   MessagesState build(String chatId) {

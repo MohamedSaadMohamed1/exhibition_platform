@@ -459,7 +459,7 @@ class SearchState {
 
 /// Search notifier
 class SearchNotifier extends Notifier<SearchState> {
-  late final SearchService _searchService;
+  late SearchService _searchService;
 
   @override
   SearchState build() {

@@ -39,7 +39,7 @@ class OrdersState {
 
 /// Customer orders notifier
 class CustomerOrdersNotifier extends FamilyNotifier<OrdersState, String> {
-  late final OrderRepository _orderRepository;
+  late OrderRepository _orderRepository;
 
   @override
   OrdersState build(String customerId) {
@@ -111,7 +111,7 @@ final customerOrdersProvider =
 
 /// Supplier orders notifier
 class SupplierOrdersNotifier extends FamilyNotifier<OrdersState, String> {
-  late final OrderRepository _orderRepository;
+  late OrderRepository _orderRepository;
 
   @override
   OrdersState build(String supplierId) {

@@ -7,15 +7,20 @@ import '../../../../shared/models/account_request_model.dart';
 
 /// Admin repository interface
 abstract class AdminRepository {
-  /// Create a new organizer account (Admin only)
+  /// Create a new organizer account (Admin only).
+  /// [countryCode] must be E.164 prefix (e.g. '+966'). Stored phone is
+  /// normalized so it matches request.auth.token.phone_number on first login.
   Future<Either<Failure, UserModel>> createOrganizer({
     required String name,
     required String phone,
     String? email,
     required String createdByAdminId,
+    String countryCode = '+966',
   });
 
-  /// Create a new supplier account (Admin only)
+  /// Create a new supplier account (Admin only).
+  /// [countryCode] must be E.164 prefix (e.g. '+966'). Stored phone is
+  /// normalized so it matches request.auth.token.phone_number on first login.
   Future<Either<Failure, ({UserModel user, SupplierModel supplier})>>
       createSupplier({
     required String name,
@@ -26,6 +31,7 @@ abstract class AdminRepository {
     String? category,
     String? email,
     required String createdByAdminId,
+    String countryCode = '+966',
   });
 
   /// Update user role (Admin only)

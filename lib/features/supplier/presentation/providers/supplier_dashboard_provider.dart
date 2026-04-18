@@ -42,12 +42,17 @@ final userSuppliersProvider = FutureProvider<List<SupplierModel>>((ref) async {
 
 /// Provider for current user's ACTIVE supplier profile
 final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
-  final suppliers = await ref.read(userSuppliersProvider.future);
+  // All ref.watch calls MUST come before any await (Riverpod requirement)
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return null;
 
+  final selectedId = ref.watch(selectedSupplierIdProvider);
+  final user = ref.watch(currentUserProvider).valueOrNull;
+
+  // Use ref.watch so this provider rebuilds when the suppliers list changes
+  final suppliers = await ref.watch(userSuppliersProvider.future);
+
   if (suppliers.isNotEmpty) {
-    final selectedId = ref.watch(selectedSupplierIdProvider);
     if (selectedId != null) {
       try {
         return suppliers.firstWhere((s) => s.id == selectedId);
@@ -61,7 +66,6 @@ final currentSupplierProvider = FutureProvider<SupplierModel?>((ref) async {
   // AUTO-PROVISION: If the user has 'supplier' role but their supplier document is completely missing
   // (e.g. because admin just updated their role without filling out the Create Supplier form)
   // we automatically provision a placeholder profile so they can use the dashboard.
-  final user = ref.watch(currentUserProvider).valueOrNull;
   if (user != null && user.role == UserRole.supplier) {
     try {
       final docRef = FirebaseFirestore.instance.collection('suppliers').doc();

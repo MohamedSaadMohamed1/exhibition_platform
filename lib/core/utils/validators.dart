@@ -1,5 +1,37 @@
 /// Validation utilities for form fields
 abstract class Validators {
+  /// Normalize a phone number to E.164 format expected by Firebase Auth.
+  ///
+  /// Firebase Auth always stores/returns numbers in E.164 (e.g. +966501234567).
+  /// The Firestore migration rule compares the stored phone against
+  /// request.auth.token.phone_number, so both MUST be in the same format.
+  ///
+  /// Examples:
+  ///   normalizePhone('0501234567', '+966')  → '+966501234567'
+  ///   normalizePhone('+966501234567', '+966') → '+966501234567' (idempotent)
+  ///   normalizePhone('501234567', '+966')   → '+966501234567'
+  static String normalizePhone(String localPhone, String countryCode) {
+    // Strip whitespace, dashes, and parentheses
+    String cleaned = localPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    final code = countryCode.replaceAll(RegExp(r'[\s\-]'), '');
+
+    // Already fully qualified
+    if (cleaned.startsWith('+')) return cleaned;
+
+    // Has country code digits without +  (e.g. "966XXXXXXX")
+    final codeDigits = code.replaceAll('+', '');
+    if (cleaned.startsWith(codeDigits)) {
+      return '+$cleaned';
+    }
+
+    // Local format with leading zero (e.g. "05XXXXXXXX" → strip the 0)
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+
+    return '$code$cleaned';
+  }
+
   /// Validate phone number
   static String? validatePhone(String? value) {
     if (value == null || value.isEmpty) {

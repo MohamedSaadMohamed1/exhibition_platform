@@ -10,7 +10,23 @@
       "Bash(find /c/Users/lenovo/Documents/GitHub/exhibition_platform/lib/features -type f -name *.dart)",
       "Bash(find /c/Users/lenovo/Documents/GitHub/exhibition_platform/ios -name *.xcconfig -exec cat {})",
       "Bash(2)",
-      "Bash(flutter doctor:*)"
+      "Bash(flutter doctor:*)",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\" -type f -name \"*.dart\")",
+      "Bash(ls -la \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\")",
+      "Bash(ls -la \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\\\\\\\\functions\")",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\\\\\\\\functions\" -maxdepth 3 -type f \\\\\\( -name \"*.ts\" -o -name \"*.js\" -o -name \"*.json\" \\\\\\))",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\" -type f -name \"enums.dart\")",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\" -type f -name \"supplier_model.dart\")",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\" -path \"*/data/datasources*\" -type d)",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\lenovo\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\exhibition_platform\" -type f -name \"app_constants.dart\")",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)",
+      "Bash(npm run:*)",
+      "Bash(gcloud auth:*)",
+      "Bash(firebase login:ci --no-localhost)",
+      "Bash(dart analyze:*)",
+      "Bash(xargs ls:*)",
+      "Bash(flutter pub:*)"
     ]
   }
 }

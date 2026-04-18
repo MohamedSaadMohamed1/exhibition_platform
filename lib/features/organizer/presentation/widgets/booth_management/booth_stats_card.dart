@@ -107,7 +107,7 @@ class BoothStatsCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '\$${stats.totalRevenue.toStringAsFixed(0)}',
+                      'KD ${stats.totalRevenue.toStringAsFixed(0)}',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: AppColors.success,
                             fontWeight: FontWeight.bold,

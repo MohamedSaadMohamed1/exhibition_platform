@@ -178,7 +178,7 @@ class _BookingCard extends StatelessWidget {
               _InfoRow(
                 icon: Icons.attach_money,
                 label: 'Price',
-                value: '\$${booking.totalPrice!.toStringAsFixed(2)}',
+                value: 'KD ${booking.totalPrice!.toStringAsFixed(2)}',
               ),
             _InfoRow(
               icon: Icons.calendar_today_outlined,

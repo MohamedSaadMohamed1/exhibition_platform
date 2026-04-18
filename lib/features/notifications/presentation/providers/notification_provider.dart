@@ -38,7 +38,7 @@ class NotificationsState {
 
 /// Notifications notifier
 class NotificationsNotifier extends FamilyNotifier<NotificationsState, String> {
-  late final NotificationRepository _notificationRepository;
+  late NotificationRepository _notificationRepository;
 
   @override
   NotificationsState build(String userId) {

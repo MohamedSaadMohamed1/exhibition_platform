@@ -46,7 +46,8 @@ class _OrganizerDashboardScreenState extends ConsumerState<OrganizerDashboardScr
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final currentUser = ref.watch(currentUserProvider).valueOrNull
+        ?? ref.watch(authNotifierProvider).user;
 
     final navItems = [
       const NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
@@ -101,9 +102,9 @@ class _DashboardTab extends ConsumerWidget {
       ..sort((a, b) => a.startDate.compareTo(b.startDate));
 
     String _formatRevenue(double revenue) {
-      if (revenue >= 1000000) return '\$${(revenue / 1000000).toStringAsFixed(1)}M';
-      if (revenue >= 1000) return '\$${(revenue / 1000).toStringAsFixed(0)}k';
-      return '\$${revenue.toStringAsFixed(0)}';
+      if (revenue >= 1000000) return 'KD ${(revenue / 1000000).toStringAsFixed(1)}M';
+      if (revenue >= 1000) return 'KD ${(revenue / 1000).toStringAsFixed(0)}k';
+      return 'KD ${revenue.toStringAsFixed(0)}';
     }
 
     return SafeArea(
@@ -187,15 +188,6 @@ class _DashboardTab extends ConsumerWidget {
                     label: 'New Event',
                     color: AppColors.organizerColor,
                     onTap: () => context.push(AppRoutes.organizerCreateExhibition),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickActionButton(
-                    icon: Icons.qr_code_scanner,
-                    label: 'Scan Entry',
-                    color: AppColors.secondary,
-                    onTap: () {},
                   ),
                 ),
                 const SizedBox(width: 12),

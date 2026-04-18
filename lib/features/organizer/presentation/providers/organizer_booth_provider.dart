@@ -63,7 +63,7 @@ class OrganizerBoothsState {
 
 /// Organizer booths notifier
 class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, String> {
-  late final BoothRepository _boothRepository;
+  late BoothRepository _boothRepository;
 
   @override
   OrganizerBoothsState build(String eventId) {

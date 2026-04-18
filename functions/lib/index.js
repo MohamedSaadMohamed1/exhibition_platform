@@ -33,13 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onInterestChange = exports.onUserCreated = exports.cleanupExpiredReservations = exports.onJobApplicationStatusChanged = exports.onEventUpdated = exports.onNewMessage = exports.onBookingStatusChanged = exports.onBookingCreated = void 0;
+exports.onInterestChange = exports.setRoleClaimsOnUserWrite = exports.onJobApplicationCreated = exports.onAccountApprovalStatusChanged = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onUserCreated = exports.cleanupExpiredReservations = exports.onJobApplicationStatusChanged = exports.onEventUpdated = exports.onNewMessage = exports.onBookingStatusChanged = exports.onBookingCreated = exports.onNotificationCreated = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 async function sendPushNotification(payload) {
+    var _a, _b;
     try {
         // Get user's FCM tokens (support both single token and array)
         const userDoc = await db.collection('users').doc(payload.userId).get();
@@ -48,7 +49,7 @@ async function sendPushNotification(payload) {
             console.log(`User ${payload.userId} not found`);
             return;
         }
-        // Collect all valid tokens
+        // Collect all valid tokens (deduplicated)
         const tokens = [];
         if (userData.fcmToken && typeof userData.fcmToken === 'string') {
             tokens.push(userData.fcmToken);
@@ -105,12 +106,16 @@ async function sendPushNotification(payload) {
             });
         }
         // Store notification in Firestore
+        // skipPush: true prevents onNotificationCreated from re-triggering a second push
         await db.collection('notifications').add({
             userId: payload.userId,
             title: payload.title,
             body: payload.body,
+            type: (_a = payload.type) !== null && _a !== void 0 ? _a : 'general',
+            targetId: (_b = payload.targetId) !== null && _b !== void 0 ? _b : null,
             data: payload.data || {},
-            read: false,
+            isRead: false,
+            skipPush: true,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         console.log(`Notification sent to user ${payload.userId} (${response.successCount}/${tokens.length} tokens)`);
@@ -120,11 +125,32 @@ async function sendPushNotification(payload) {
     }
 }
 // ========================
+// NOTIFICATION WRITE TRIGGER
+// Fires when client code writes a notification doc directly
+// (resolves the TODO in notification_repository_impl.dart)
+// ========================
+exports.onNotificationCreated = functions.firestore
+    .document('notifications/{notificationId}')
+    .onCreate(async (snap) => {
+    var _a;
+    const n = snap.data();
+    if (!n || n.skipPush === true)
+        return;
+    await sendPushNotification({
+        userId: n.userId,
+        title: n.title,
+        body: n.body,
+        type: n.type,
+        targetId: n.targetId,
+        data: (_a = n.data) !== null && _a !== void 0 ? _a : {},
+    });
+});
+// ========================
 // BOOKING NOTIFICATIONS
 // ========================
 // Notify organizer when new booking request is created
 exports.onBookingCreated = functions.firestore
-    .document('bookingRequests/{requestId}')
+    .document('booking_requests/{requestId}')
     .onCreate(async (snap, context) => {
     var _a, _b;
     const booking = snap.data();
@@ -148,7 +174,7 @@ exports.onBookingCreated = functions.firestore
 });
 // Notify exhibitor when booking status changes
 exports.onBookingStatusChanged = functions.firestore
-    .document('bookingRequests/{requestId}')
+    .document('booking_requests/{requestId}')
     .onUpdate(async (change, context) => {
     var _a;
     const before = change.before.data();
@@ -201,6 +227,7 @@ exports.onBookingStatusChanged = functions.firestore
 exports.onNewMessage = functions.firestore
     .document('chats/{chatId}/messages/{messageId}')
     .onCreate(async (snap, context) => {
+    var _a;
     const message = snap.data();
     const { chatId } = context.params;
     // Get chat to find recipient
@@ -212,6 +239,12 @@ exports.onNewMessage = functions.firestore
     const recipientId = chat.participants.find((id) => id !== message.senderId);
     if (!recipientId)
         return;
+    // Suppress notification if recipient is currently viewing this chat
+    const recipientDoc = await db.collection('users').doc(recipientId).get();
+    if (((_a = recipientDoc.data()) === null || _a === void 0 ? void 0 : _a.activeChat) === chatId) {
+        console.log(`Suppressing new_message notification: recipient ${recipientId} is in chat ${chatId}`);
+        return;
+    }
     // Get sender name
     const senderName = chat.participantNames[message.senderId] || 'Someone';
     // Notify recipient
@@ -279,7 +312,7 @@ exports.onEventUpdated = functions.firestore
 // ========================
 // Notify when job application status changes
 exports.onJobApplicationStatusChanged = functions.firestore
-    .document('jobApplications/{applicationId}')
+    .document('jobs/{jobId}/applications/{applicationId}')
     .onUpdate(async (change, context) => {
     var _a;
     const before = change.before.data();
@@ -287,7 +320,7 @@ exports.onJobApplicationStatusChanged = functions.firestore
     if (before.status === after.status)
         return;
     // Get job details
-    const jobDoc = await db.collection('eventJobs').doc(after.jobId).get();
+    const jobDoc = await db.collection('jobs').doc(context.params.jobId).get();
     const jobTitle = ((_a = jobDoc.data()) === null || _a === void 0 ? void 0 : _a.title) || 'a job';
     let title = '';
     let body = '';
@@ -311,10 +344,12 @@ exports.onJobApplicationStatusChanged = functions.firestore
         userId: after.userId,
         title,
         body,
+        type: 'applicationAccepted',
+        targetId: context.params.jobId,
         data: {
             type: 'job_application_status',
             applicationId: context.params.applicationId,
-            jobId: after.jobId,
+            jobId: context.params.jobId,
             status: after.status,
         },
     });
@@ -369,15 +404,211 @@ exports.cleanupExpiredReservations = functions.pubsub
 // ========================
 // USER MANAGEMENT
 // ========================
-// When admin creates a user document, ensure phone number mapping
+// When a user document is created: subscribe to role topic and notify admins
 exports.onUserCreated = functions.firestore
     .document('users/{userId}')
     .onCreate(async (snap, context) => {
     const user = snap.data();
-    // Subscribe user to role-based topic for targeted notifications
-    if (user.fcmToken) {
-        await messaging.subscribeToTopic([user.fcmToken], `role_${user.role}`);
+    const { userId } = context.params;
+    // Subscribe user to role-based topic (handles both single token and array)
+    const tokens = [];
+    if (user.fcmToken && typeof user.fcmToken === 'string')
+        tokens.push(user.fcmToken);
+    if (Array.isArray(user.fcmTokens)) {
+        for (const t of user.fcmTokens) {
+            if (typeof t === 'string' && !tokens.includes(t))
+                tokens.push(t);
+        }
     }
+    if (tokens.length > 0) {
+        await messaging.subscribeToTopic(tokens, `role_${user.role}`);
+    }
+    // Notify all admins of new user registration
+    const adminSnapshot = await db.collection('users').where('role', '==', 'admin').get();
+    if (!adminSnapshot.empty) {
+        await Promise.all(adminSnapshot.docs.map((doc) => sendPushNotification({
+            userId: doc.id,
+            title: 'New User Registered',
+            body: `${user.name || 'A new user'} (${user.role}) has joined the platform.`,
+            type: 'systemAnnouncement',
+            targetId: userId,
+            data: { type: 'account', userId },
+        })));
+    }
+});
+// ========================
+// ORDER NOTIFICATIONS
+// ========================
+// Notify supplier when a new order is placed
+exports.onOrderCreated = functions.firestore
+    .document('orders/{orderId}')
+    .onCreate(async (snap, context) => {
+    const order = snap.data();
+    const { orderId } = context.params;
+    if (!order.supplierId)
+        return;
+    await sendPushNotification({
+        userId: order.supplierId,
+        title: 'New Order Received',
+        body: 'You have a new order from a customer.',
+        type: 'orderPlaced',
+        targetId: orderId,
+        data: { type: 'order', orderId },
+    });
+});
+// Notify customer when order status changes; notify supplier on payment
+exports.onOrderStatusChanged = functions.firestore
+    .document('orders/{orderId}')
+    .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    const { orderId } = context.params;
+    // Order status notifications
+    if (before.status !== after.status && after.customerId) {
+        const statusMap = {
+            confirmed: { title: 'Order Confirmed', body: 'Your order has been confirmed by the supplier.', type: 'orderConfirmed' },
+            shipped: { title: 'Order Shipped', body: 'Your order is on its way!', type: 'orderShipped' },
+            delivered: { title: 'Order Delivered', body: 'Your order has been delivered.', type: 'orderDelivered' },
+            cancelled: { title: 'Order Cancelled', body: 'Your order has been cancelled.', type: 'orderCancelled' },
+        };
+        const msg = statusMap[after.status];
+        if (msg) {
+            await sendPushNotification(Object.assign(Object.assign({ userId: after.customerId }, msg), { targetId: orderId, data: { type: 'order', orderId, status: after.status } }));
+        }
+    }
+    // Payment status notifications
+    if (before.paymentStatus !== after.paymentStatus) {
+        if (after.paymentStatus === 'paid' && after.supplierId) {
+            await sendPushNotification({
+                userId: after.supplierId,
+                title: 'Payment Received',
+                body: 'Payment for an order has been received.',
+                type: 'paymentReceived',
+                targetId: orderId,
+                data: { type: 'payment', orderId, paymentStatus: 'paid' },
+            });
+        }
+        else if (after.paymentStatus === 'failed' && after.customerId) {
+            await sendPushNotification({
+                userId: after.customerId,
+                title: 'Payment Failed',
+                body: 'Your payment could not be processed. Please try again.',
+                type: 'paymentFailed',
+                targetId: orderId,
+                data: { type: 'payment', orderId, paymentStatus: 'failed' },
+            });
+        }
+    }
+});
+// ========================
+// ACCOUNT NOTIFICATIONS
+// ========================
+// Notify user when their account request is approved or rejected
+exports.onAccountApprovalStatusChanged = functions.firestore
+    .document('account_requests/{requestId}')
+    .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    if (before.status === after.status || !after.userId)
+        return;
+    if (after.status === 'approved') {
+        await sendPushNotification({
+            userId: after.userId,
+            title: 'Account Approved!',
+            body: 'Your account has been approved. You can now access all features.',
+            type: 'accountVerified',
+            targetId: context.params.requestId,
+            data: { type: 'account_approval', status: 'approved' },
+        });
+    }
+    else if (after.status === 'rejected') {
+        await sendPushNotification({
+            userId: after.userId,
+            title: 'Account Request Rejected',
+            body: `Your request was not approved.${after.rejectionReason ? ` Reason: ${after.rejectionReason}` : ''}`,
+            type: 'systemAnnouncement',
+            targetId: context.params.requestId,
+            data: { type: 'account_approval', status: 'rejected' },
+        });
+    }
+});
+// ========================
+// JOB APPLICATION CREATED NOTIFICATION
+// ========================
+// Notify organizer when a new job application is submitted
+exports.onJobApplicationCreated = functions.firestore
+    .document('jobs/{jobId}/applications/{applicationId}')
+    .onCreate(async (snap, context) => {
+    var _a;
+    const application = snap.data();
+    const { jobId, applicationId } = context.params;
+    const [jobDoc, applicantDoc] = await Promise.all([
+        db.collection('jobs').doc(jobId).get(),
+        db.collection('users').doc(application.userId).get(),
+    ]);
+    const job = jobDoc.data();
+    if (!job || !job.organizerId)
+        return;
+    const applicantName = ((_a = applicantDoc.data()) === null || _a === void 0 ? void 0 : _a.name) || 'Someone';
+    await sendPushNotification({
+        userId: job.organizerId,
+        title: 'New Job Application',
+        body: `${applicantName} applied for "${job.title || 'your job posting'}".`,
+        type: 'applicationReceived',
+        targetId: jobId,
+        data: { type: 'job_application', jobId, applicationId },
+    });
+});
+// ========================
+// CUSTOM CLAIMS — ROLE SYNC
+// ========================
+//
+// Keeps Firebase Auth custom claims in sync with the Firestore user document.
+// Benefits:
+//   • Role is available in request.auth.token.role inside Firestore rules
+//     without an extra Firestore read — faster, cheaper, more reliable.
+//   • isActive is embedded so deactivated users are blocked at the token level.
+//
+// Usage in firestore.rules:
+//   function hasRole(role) {
+//     return request.auth.token.role == role;
+//   }
+//   function isActiveUser() {
+//     return request.auth.token.isActive == true;
+//   }
+exports.setRoleClaimsOnUserWrite = functions.firestore
+    .document('users/{userId}')
+    .onWrite(async (change, context) => {
+    var _a, _b;
+    const { userId } = context.params;
+    // Document deleted — revoke claims
+    if (!change.after.exists) {
+        try {
+            await admin.auth().setCustomUserClaims(userId, {});
+        }
+        catch (err) {
+            // User may not exist in Auth (pre-created temp doc) — that's fine
+            console.log(`Could not clear claims for ${userId}:`, err);
+        }
+        return null;
+    }
+    const data = change.after.data();
+    const role = (_a = data.role) !== null && _a !== void 0 ? _a : 'visitor';
+    const isActive = (_b = data.isActive) !== null && _b !== void 0 ? _b : true;
+    // Only update claims when role or isActive actually changed
+    const before = change.before.exists ? change.before.data() : {};
+    if (before.role === role && before.isActive === isActive)
+        return null;
+    try {
+        await admin.auth().setCustomUserClaims(userId, { role, isActive });
+        console.log(`Custom claims set for ${userId}: role=${role}, isActive=${isActive}`);
+    }
+    catch (err) {
+        // The Firestore doc may have a temp UUID that doesn't exist in Firebase Auth yet.
+        // This is expected for admin-pre-created accounts before first login — ignore silently.
+        console.log(`Could not set claims for ${userId} (may be pre-auth temp doc):`, err);
+    }
+    return null;
 });
 // ========================
 // ANALYTICS & AGGREGATIONS

@@ -30,7 +30,7 @@ class AdminRequestsState {
 }
 
 class AdminRequestsNotifier extends Notifier<AdminRequestsState> {
-  late final AdminRepository _adminRepository;
+  late AdminRepository _adminRepository;
 
   @override
   AdminRequestsState build() {

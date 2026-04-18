@@ -5,6 +5,11 @@ import '../../../../shared/models/user_model.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../shared/services/notification_service.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../../supplier/presentation/providers/supplier_dashboard_provider.dart';
+import '../../../chat/presentation/providers/chat_provider.dart';
+import '../../../organizer/presentation/providers/organizer_booking_provider.dart' hide bookingStatsProvider;
+import '../../../bookings/presentation/providers/booking_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
 
 /// Auth state class
 class AuthState {
@@ -51,8 +56,8 @@ enum AuthStatus {
 
 /// Auth Notifier using Riverpod 2.x
 class AuthNotifier extends Notifier<AuthState> {
-  late final AuthRepository _authRepository;
-  late final NotificationService _notificationService;
+  late AuthRepository _authRepository;
+  late NotificationService _notificationService;
 
   @override
   AuthState build() {
@@ -187,6 +192,10 @@ class AuthNotifier extends Notifier<AuthState> {
           );
           // Initialize notifications for authenticated user
           await _initializeNotifications(user);
+          // Force auth stream providers to re-subscribe now that Firestore cache
+          // is clear and the new user is fully signed in
+          ref.invalidate(currentUserProvider);
+          ref.invalidate(firebaseUserProvider);
         }
       },
     );
@@ -288,6 +297,39 @@ class AuthNotifier extends Notifier<AuthState> {
         );
       },
       (_) {
+        // Reset StateProviders so old user's selections don't leak into the next session
+        ref.read(selectedSupplierIdProvider.notifier).state = null;
+        ref.read(activeChatIdProvider.notifier).state = null;
+
+        // Invalidate core auth stream providers so the new user's Firestore data
+        // is fetched fresh (prevents stale name/role showing after account switch)
+        ref.invalidate(currentUserProvider);
+        ref.invalidate(firebaseUserProvider);
+
+        // Invalidate all user-data providers so they rebuild fresh on next login
+        // For family providers, ref.invalidate clears ALL family instances
+        ref.invalidate(userSuppliersProvider);
+        ref.invalidate(currentSupplierProvider);
+        ref.invalidate(myServicesProvider);
+        ref.invalidate(myOrdersAsSupplierProvider);
+        ref.invalidate(supplierStatsProvider);
+        ref.invalidate(recentOrdersProvider);
+        ref.invalidate(userChatsProvider);              // family — all instances
+        ref.invalidate(organizerBookingProvider);        // family — all instances
+        ref.invalidate(organizerBookingStreamProvider);  // family — cancels Firestore streams
+        // booking_provider.dart providers
+        ref.invalidate(exhibitorBookingsProvider);        // family
+        ref.invalidate(exhibitorBookingsStreamProvider);  // family — cancels Firestore stream
+        ref.invalidate(organizerBookingsProvider);        // family
+        ref.invalidate(organizerBookingsStreamProvider);  // family — cancels Firestore stream
+        ref.invalidate(bookingStatsProvider);             // family
+        // notification providers — cancel Firestore streams per user
+        ref.invalidate(notificationsNotifierProvider);
+        ref.invalidate(unreadNotificationsCountProvider); // family — cancels stream
+        ref.invalidate(userNotificationsStreamProvider);  // family — cancels stream
+        ref.invalidate(notificationSettingsProvider);     // family
+
+        AppLogger.info('All user providers invalidated on sign-out', tag: 'Auth');
         state = const AuthState(status: AuthStatus.initial);
       },
     );

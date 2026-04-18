@@ -40,7 +40,7 @@ class BookingsState {
 
 /// Exhibitor bookings notifier
 class ExhibitorBookingsNotifier extends FamilyNotifier<BookingsState, String> {
-  late final BookingRepository _bookingRepository;
+  late BookingRepository _bookingRepository;
 
   @override
   BookingsState build(String exhibitorId) {
@@ -112,7 +112,7 @@ final exhibitorBookingsProvider =
 
 /// Organizer bookings notifier
 class OrganizerBookingsNotifier extends FamilyNotifier<BookingsState, String> {
-  late final BookingRepository _bookingRepository;
+  late BookingRepository _bookingRepository;
 
   @override
   BookingsState build(String organizerId) {

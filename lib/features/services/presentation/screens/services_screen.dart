@@ -470,7 +470,7 @@ class _ServiceCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '\$${service.price?.toStringAsFixed(2) ?? '0.00'}',
+                        'KD ${service.price?.toStringAsFixed(2) ?? '0.00'}',
                         style: const TextStyle(
                           color: AppColors.primary,
                           fontSize: 18,

@@ -41,7 +41,7 @@ class AdminUsersState {
 
 /// Admin Users Notifier
 class AdminUsersNotifier extends Notifier<AdminUsersState> {
-  late final AdminRepository _adminRepository;
+  late AdminRepository _adminRepository;
 
   @override
   AdminUsersState build() {

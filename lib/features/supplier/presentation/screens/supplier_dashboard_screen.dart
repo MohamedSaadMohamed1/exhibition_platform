@@ -49,7 +49,8 @@ class _SupplierDashboardScreenState
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final currentUser = ref.watch(currentUserProvider).valueOrNull
+        ?? ref.watch(authNotifierProvider).user;
 
     final navItems = [
       const NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
@@ -511,7 +512,7 @@ class _WelcomeCard extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.notifications_outlined,
                 color: Colors.white, size: 28),
-            onPressed: () {},
+            onPressed: () => context.push(AppRoutes.notifications),
           ),
         ],
       ),
@@ -560,7 +561,7 @@ class _StatsGrid extends StatelessWidget {
         ),
         _StatCard(
           title: 'This Month',
-          value: '\$${_formatMoney(stats.monthlyRevenue)}',
+          value: 'KD ${_formatMoney(stats.monthlyRevenue)}',
           icon: Icons.trending_up_rounded,
           color: AppColors.info,
           trend: 'Revenue',
@@ -733,32 +734,6 @@ class _QuickActions extends StatelessWidget {
             label: 'Add Service',
             color: AppColors.supplierColor,
             onTap: () => _showAddServiceDialog(context),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _QuickActionButton(
-            icon: Icons.analytics_outlined,
-            label: 'Analytics',
-            color: AppColors.info,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Analytics coming soon')),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _QuickActionButton(
-            icon: Icons.settings_outlined,
-            label: 'Settings',
-            color: AppColors.grey500,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings coming soon')),
-              );
-            },
           ),
         ),
       ],

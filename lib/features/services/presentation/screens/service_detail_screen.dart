@@ -287,7 +287,7 @@ class _ServiceDetailContent extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '\$${service.price?.toStringAsFixed(2) ?? '0.00'}',
+                                  'KD ${service.price?.toStringAsFixed(2) ?? '0.00'}',
                                   style: const TextStyle(
                                     color: AppColors.primary,
                                     fontSize: 28,
@@ -588,7 +588,7 @@ class _ServiceDetailContent extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '\$${service.price?.toStringAsFixed(2) ?? '0.00'} / ${service.priceUnit ?? 'unit'}',
+                            'KD ${service.price?.toStringAsFixed(2) ?? '0.00'} / ${service.priceUnit ?? 'unit'}',
                             style: const TextStyle(
                               color: AppColors.primary,
                             ),

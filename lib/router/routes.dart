@@ -22,6 +22,7 @@ abstract class AppRoutes {
   static const String adminEvents = '/admin/events';
   static const String adminEditEvent = '/admin/events/:eventId/edit';
   static const String adminJobApplications = '/admin/job-applications';
+  static const String adminJobs = '/admin/jobs';
 
   // Owner routes
   static const String ownerDashboard = '/owner/dashboard';

@@ -814,91 +814,73 @@ class _SupplierCard extends StatelessWidget {
   }
 }
 
-// Event Jobs Tab - New Promotional Design
-class _EventJobsTab extends StatelessWidget {
+// Event Jobs Tab - Promotional banner + real jobs from Firestore
+class _EventJobsTab extends ConsumerWidget {
   const _EventJobsTab();
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          // Promotional Job Card
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.cardDark,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Banner Image with "We are Hiring" text
-                Container(
-                  height: 220,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary.withOpacity(0.3),
-                        AppColors.cardDark,
-                      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final openJobsAsync = ref.watch(openJobsProvider);
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(openJobsProvider),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+
+            // ── "We are Hiring" promotional card (unchanged) ──────────
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Banner
+                  Container(
+                    height: 220,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.primary.withOpacity(0.3),
+                          AppColors.cardDark,
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Background pattern or image placeholder
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              center: Alignment.topRight,
-                              radius: 1.2,
-                              colors: [
-                                AppColors.primary.withOpacity(0.2),
-                                Colors.transparent,
-                              ],
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                center: Alignment.topRight,
+                                radius: 1.2,
+                                colors: [
+                                  AppColors.primary.withOpacity(0.2),
+                                  Colors.transparent,
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      // "We are Hiring" text
-                      Positioned(
-                        left: 24,
-                        top: 40,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'We',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 42,
-                                fontWeight: FontWeight.bold,
-                                height: 1.1,
-                              ),
-                            ),
-                            const Text(
-                              'are',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 42,
-                                fontWeight: FontWeight.bold,
-                                height: 1.1,
-                              ),
-                            ),
-                            ShaderMask(
-                              shaderCallback: (bounds) => const LinearGradient(
-                                colors: [AppColors.primary, Color(0xFF9C27B0)],
-                              ).createShader(bounds),
-                              child: const Text(
-                                'Hiring',
+                        Positioned(
+                          left: 24,
+                          top: 40,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'We',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 42,
@@ -906,166 +888,346 @@ class _EventJobsTab extends StatelessWidget {
                                   height: 1.1,
                                 ),
                               ),
-                            ),
-                          ],
+                              const Text(
+                                'are',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.1,
+                                ),
+                              ),
+                              ShaderMask(
+                                shaderCallback: (bounds) =>
+                                    const LinearGradient(
+                                  colors: [
+                                    AppColors.primary,
+                                    Color(0xFF9C27B0)
+                                  ],
+                                ).createShader(bounds),
+                                child: const Text(
+                                  'Hiring',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 42,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      // Megaphone icon placeholder
-                      Positioned(
-                        right: -20,
-                        top: 20,
-                        child: Icon(
-                          Icons.campaign,
-                          size: 180,
-                          color: Colors.green.withOpacity(0.3),
+                        Positioned(
+                          right: -20,
+                          top: 20,
+                          child: Icon(
+                            Icons.campaign,
+                            size: 180,
+                            color: Colors.green.withOpacity(0.3),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  // Jobs count summary
+                  openJobsAsync.when(
+                    data: (jobs) => Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.work_outline,
+                                color: AppColors.primary, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              jobs.isEmpty
+                                  ? 'No open positions at the moment'
+                                  : '${jobs.length} open position${jobs.length == 1 ? '' : 's'} available',
+                              style: const TextStyle(
+                                color: AppColors.textPrimaryDark,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+            // ── End of promotional card ───────────────────────────────
+
+            const SizedBox(height: 24),
+
+            // ── Real jobs list ────────────────────────────────────────
+            openJobsAsync.when(
+              data: (jobs) {
+                if (jobs.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Available Jobs',
+                      style: TextStyle(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...jobs.map((job) => _JobListCard(job: job)),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Text(
+                  'Failed to load jobs',
+                  style:
+                      const TextStyle(color: AppColors.textSecondaryDark),
                 ),
-                // Job Info Section
-                Padding(
-                  padding: const EdgeInsets.all(20),
+              ),
+            ),
+
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Individual job card in the visitor jobs list ─────────────────────
+class _JobListCard extends StatelessWidget {
+  final JobModel job;
+
+  const _JobListCard({required this.job});
+
+  String _formatDeadline(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title row + applicants badge
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.work_outline,
+                      color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Job Icon
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.work_outline,
-                              color: AppColors.primary,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          // Job Title and Description
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'January Jobs',
-                                      style: TextStyle(
-                                        color: AppColors.textPrimaryDark,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.cardDark,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Text(
-                                        '12 Jobs',
-                                        style: TextStyle(
-                                          color: AppColors.textPrimaryDark,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  "Various job opportunities at this month's exhibition",
-                                  style: TextStyle(
-                                    color: AppColors.textSecondaryDark,
-                                    fontSize: 13,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                            child: Text(
+                              job.title,
+                              style: const TextStyle(
+                                color: AppColors.textPrimaryDark,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceDark,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${job.applicationsCount} Applied',
+                              style: const TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      // Deadline
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 16,
-                            color: AppColors.primary.withOpacity(0.8),
+                      if (job.eventTitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          job.eventTitle!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondaryDark,
+                            fontSize: 13,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Deadline: January 15, 2026',
-                            style: TextStyle(
-                              color: AppColors.primary.withOpacity(0.8),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Apply Now Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => _showJobApplicationForm(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Apply Now',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 100),
-        ],
+            const SizedBox(height: 12),
+
+            // Tags row
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (job.jobType != null) _Tag(job.jobType!),
+                if (job.location != null) _Tag(job.location!),
+                if (job.salary != null) _Tag(job.salary!),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Deadline
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 14,
+                  color: job.isDeadlinePassed
+                      ? AppColors.error
+                      : AppColors.primary.withOpacity(0.8),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  job.isDeadlinePassed
+                      ? 'Deadline passed'
+                      : 'Deadline: ${_formatDeadline(job.deadline)}',
+                  style: TextStyle(
+                    color: job.isDeadlinePassed
+                        ? AppColors.error
+                        : AppColors.primary.withOpacity(0.8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Apply Now button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: job.isAcceptingApplications
+                    ? () => _showApplySheet(context)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.grey700,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  job.isAcceptingApplications
+                      ? 'Apply Now'
+                      : 'Applications Closed',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _showJobApplicationForm(BuildContext context) {
+  void _showApplySheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _JobApplicationFormSheet(),
+      builder: (_) => _JobApplicationFormSheet(
+        jobId: job.id,
+        jobTitle: job.title,
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final String label;
+  const _Tag(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
 
 // Job Application Form Sheet
 class _JobApplicationFormSheet extends ConsumerStatefulWidget {
-  const _JobApplicationFormSheet();
+  final String? jobId;
+  final String? jobTitle;
+
+  const _JobApplicationFormSheet({this.jobId, this.jobTitle});
 
   @override
   ConsumerState<_JobApplicationFormSheet> createState() =>
@@ -1109,7 +1271,6 @@ class _JobApplicationFormSheetState
     setState(() => _isSubmitting = true);
 
     try {
-      // Save directly to Firestore job_applications collection
       final firestore = FirebaseFirestore.instance;
       final docRef = firestore.collection('job_applications').doc();
 
@@ -1123,6 +1284,7 @@ class _JobApplicationFormSheetState
         'coverLetter': _commentController.text.trim(),
         'status': 'pending',
         'source': 'event_jobs_tab',
+        if (widget.jobId != null) 'jobId': widget.jobId,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -1178,12 +1340,29 @@ class _JobApplicationFormSheetState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Job Application',
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Job Application',
+                        style: TextStyle(
+                          color: AppColors.textPrimaryDark,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (widget.jobTitle != null)
+                        Text(
+                          widget.jobTitle!,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                 ),
                 IconButton(

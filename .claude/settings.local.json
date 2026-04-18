@@ -26,7 +26,8 @@
       "Bash(firebase login:ci --no-localhost)",
       "Bash(dart analyze:*)",
       "Bash(xargs ls:*)",
-      "Bash(flutter pub:*)"
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)"
     ]
   }
 }

@@ -210,21 +210,30 @@ class JobRepositoryImpl implements JobRepository {
     int limit = 20,
   }) async {
     try {
+      // Single-field where clause avoids composite index requirement.
+      // Deadline and jobType filtering is done in Dart after fetching.
       Query<Map<String, dynamic>> query = _jobsCollection
-          .where('status', isEqualTo: JobStatus.open.value)
-          .where('deadline', isGreaterThan: Timestamp.now());
+          .where('status', isEqualTo: JobStatus.open.value);
 
       if (eventId != null) {
         query = query.where('eventId', isEqualTo: eventId);
       }
+
+      final snapshot = await query.limit(limit * 2).get();
+      final now = DateTime.now();
+
+      var jobs = snapshot.docs
+          .map((doc) => JobModel.fromFirestore(doc))
+          .where((j) => j.deadline.isAfter(now))
+          .toList();
+
       if (jobType != null) {
-        query = query.where('jobType', isEqualTo: jobType);
+        jobs = jobs.where((j) => j.jobType == jobType).toList();
       }
 
-      final snapshot = await query.orderBy('deadline').limit(limit).get();
-      final jobs = snapshot.docs.map((doc) => JobModel.fromFirestore(doc)).toList();
+      jobs.sort((a, b) => a.deadline.compareTo(b.deadline));
 
-      return Right(jobs);
+      return Right(jobs.take(limit).toList());
     } catch (e) {
       return Left(e.toFailure());
     }

@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,8 +76,6 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
   }
 
   void _showApplicationSheet(BuildContext context, JobModel job) {
-    final coverLetterController = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -81,156 +83,9 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Apply for Job',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondaryDark),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.work_outline,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            job.title,
-                            style: const TextStyle(
-                              color: AppColors.textPrimaryDark,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (job.eventTitle != null)
-                            Text(
-                              job.eventTitle!,
-                              style: const TextStyle(
-                                color: AppColors.textSecondaryDark,
-                                fontSize: 12,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Cover Letter',
-                style: TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: coverLetterController,
-                maxLines: 5,
-                style: const TextStyle(color: AppColors.textPrimaryDark),
-                decoration: InputDecoration(
-                  hintText: 'Tell us why you\'re a great fit for this role...',
-                  hintStyle: const TextStyle(color: AppColors.textMutedDark),
-                  filled: true,
-                  fillColor: AppColors.cardDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Resume upload placeholder
-              OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: Implement resume upload
-                },
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Upload Resume (Optional)'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondaryDark,
-                  side: BorderSide(color: AppColors.grey600),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement application submission
-                    Navigator.pop(context);
-                    setState(() => _hasApplied = true);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Application submitted successfully!'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Submit Application',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (context) => _ApplicationSheet(
+        job: job,
+        onSuccess: () => setState(() => _hasApplied = true),
       ),
     );
   }
@@ -630,6 +485,306 @@ class _JobDetailContent extends StatelessWidget {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[deadline.month - 1]} ${deadline.day}, ${deadline.year}';
+  }
+}
+
+// ── Application bottom sheet ──────────────────────────────────────────
+class _ApplicationSheet extends ConsumerStatefulWidget {
+  final JobModel job;
+  final VoidCallback onSuccess;
+
+  const _ApplicationSheet({required this.job, required this.onSuccess});
+
+  @override
+  ConsumerState<_ApplicationSheet> createState() => _ApplicationSheetState();
+}
+
+class _ApplicationSheetState extends ConsumerState<_ApplicationSheet> {
+  final _coverLetterController = TextEditingController();
+  String? _cvFilePath;
+  String? _cvFileName;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _coverLetterController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickCv() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx'],
+    );
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _cvFilePath = result.files.single.path;
+        _cvFileName = result.files.single.name;
+      });
+    }
+  }
+
+  Future<String?> _uploadCv(String jobId, String userId) async {
+    if (_cvFilePath == null) return null;
+    final file = File(_cvFilePath!);
+    final ext = _cvFileName!.split('.').last;
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child('cv_uploads/$jobId/${userId}_${DateTime.now().millisecondsSinceEpoch}.$ext');
+    await storageRef.putFile(file);
+    return await storageRef.getDownloadURL();
+  }
+
+  Future<void> _submit() async {
+    final currentUser = ref.read(currentUserProvider).value;
+    if (currentUser == null) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      String? resumeUrl;
+      if (_cvFilePath != null) {
+        resumeUrl = await _uploadCv(widget.job.id, currentUser.id);
+      }
+
+      final repository = ref.read(jobRepositoryProvider);
+      final result = await repository.applyForJob(
+        jobId: widget.job.id,
+        eventId: widget.job.eventId,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userPhone: currentUser.phone,
+        userEmail: currentUser.email,
+        coverLetter: _coverLetterController.text.trim().isEmpty
+            ? null
+            : _coverLetterController.text.trim(),
+        resumeUrl: resumeUrl,
+      );
+
+      if (mounted) {
+        result.fold(
+          (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(failure.message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          },
+          (_) {
+            Navigator.pop(context);
+            widget.onSuccess();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Application submitted successfully!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Apply for Job',
+                  style: TextStyle(
+                    color: AppColors.textPrimaryDark,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textSecondaryDark),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Job summary card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.work_outline, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.job.title,
+                          style: const TextStyle(
+                            color: AppColors.textPrimaryDark,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (widget.job.eventTitle != null)
+                          Text(
+                            widget.job.eventTitle!,
+                            style: const TextStyle(
+                              color: AppColors.textSecondaryDark,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Cover Letter',
+              style: TextStyle(
+                color: AppColors.textPrimaryDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _coverLetterController,
+              maxLines: 4,
+              style: const TextStyle(color: AppColors.textPrimaryDark),
+              decoration: InputDecoration(
+                hintText: 'Tell us why you\'re a great fit for this role...',
+                hintStyle: const TextStyle(color: AppColors.textMutedDark),
+                filled: true,
+                fillColor: AppColors.cardDark,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // CV upload button
+            InkWell(
+              onTap: _isSubmitting ? null : _pickCv,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: _cvFileName != null
+                      ? AppColors.primary.withOpacity(0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _cvFileName != null
+                        ? AppColors.primary
+                        : AppColors.grey600,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _cvFileName != null ? Icons.description : Icons.upload_file,
+                      color: _cvFileName != null
+                          ? AppColors.primary
+                          : AppColors.textSecondaryDark,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _cvFileName ?? 'Upload CV / Resume (PDF, DOC)',
+                        style: TextStyle(
+                          color: _cvFileName != null
+                              ? AppColors.primary
+                              : AppColors.textSecondaryDark,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_cvFileName != null)
+                      GestureDetector(
+                        onTap: () => setState(() {
+                          _cvFilePath = null;
+                          _cvFileName = null;
+                        }),
+                        child: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppColors.textSecondaryDark,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.grey600,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Submit Application',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 }
 

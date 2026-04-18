@@ -21,6 +21,7 @@ abstract class FirestoreCollections {
   static const String settings = 'settings';
   static const String reports = 'reports';
   static const String logs = 'logs';
+  static const String supportTickets = 'support_tickets';
 }
 
 /// Storage bucket paths

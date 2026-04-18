@@ -43,6 +43,7 @@ dependencies:
   equatable: ^2.0.5
   dartz: ^0.10.1
   image_picker: ^1.1.2
+  file_picker: ^8.0.7
   permission_handler: ^11.3.1
   url_launcher: ^6.3.1
   share_plus: ^10.0.3

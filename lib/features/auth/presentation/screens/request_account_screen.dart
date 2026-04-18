@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/enums.dart';
+import '../../../../core/utils/validators.dart';
 import '../widgets/auth_background.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/country_picker.dart';
@@ -54,14 +55,35 @@ class _RequestAccountScreenState extends ConsumerState<RequestAccountScreen> {
     );
   }
 
+  String _phoneHintForCountry(String countryCode) {
+    switch (countryCode) {
+      case '+965': return '5XXX XXXX';       // Kuwait – 8 digits
+      case '+966': return '5XX XXX XXXX';    // Saudi Arabia – 9 digits
+      case '+971': return '5X XXX XXXX';     // UAE – 9 digits
+      case '+974': return '3XXX XXXX';       // Qatar – 8 digits
+      case '+973': return '3XXX XXXX';       // Bahrain – 8 digits
+      case '+968': return '9XXX XXXX';       // Oman – 8 digits
+      case '+20':  return '1XX XXX XXXX';    // Egypt – 10 digits
+      case '+962': return '7X XXX XXXX';     // Jordan – 9 digits
+      case '+961': return '7X XXX XXX';      // Lebanon – 8 digits
+      case '+964': return '7XX XXX XXXX';    // Iraq – 10 digits
+      case '+1':   return 'XXX XXX XXXX';    // US – 10 digits
+      case '+44':  return '7XXX XXX XXX';    // UK – 10 digits
+      case '+91':  return 'XXXXX XXXXX';     // India – 10 digits
+      case '+92':  return '3XX XXX XXXX';    // Pakistan – 10 digits
+      default:     return 'XXX XXX XXXX';
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty || phone.length < 8) {
+    final phoneError = Validators.validateLocalPhone(phone, _selectedCountryCode);
+    if (phoneError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid phone number'),
+        SnackBar(
+          content: Text(phoneError),
           backgroundColor: AppColors.error,
         ),
       );
@@ -187,12 +209,27 @@ class _RequestAccountScreenState extends ConsumerState<RequestAccountScreen> {
                   onTap: _showCountryPicker,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      _selectedCountryCode,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 16,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedCountryFlag,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _selectedCountryCode,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 16,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.white.withOpacity(0.4),
+                          size: 18,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -201,9 +238,9 @@ class _RequestAccountScreenState extends ConsumerState<RequestAccountScreen> {
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     style: const TextStyle(color: Colors.white, fontSize: 16),
-                    decoration: const InputDecoration(
-                      hintText: '5XX XXX XXXX',
-                      hintStyle: TextStyle(color: Colors.white38, fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: _phoneHintForCountry(_selectedCountryCode),
+                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 16),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),

@@ -75,7 +75,7 @@ abstract class AppColors {
   static const Color tabInactive = Color(0xFF6B7280);
 
   // Role Colors
-  static const Color adminColor = Color(0xFFEF4444);
+  static const Color adminColor = Color(0xFF9333EA);
   static const Color ownerColor = Color(0xFFF59E0B);
   static const Color organizerColor = Color(0xFF8C30E8);
   static const Color supplierColor = Color(0xFF10B981);

@@ -493,6 +493,14 @@ class _FilterBar extends StatelessWidget {
     const filters = <String?>[null, 'pending', 'reviewed', 'accepted', 'rejected'];
     const labels = <String>['All', 'Pending', 'Reviewed', 'Accepted', 'Rejected'];
 
+    const filterColors = <String?, Color>{
+      null: AppColors.adminColor,
+      'pending': Colors.orange,
+      'reviewed': Colors.blue,
+      'accepted': Colors.green,
+      'rejected': Colors.red,
+    };
+
     return Container(
       color: AppColors.surfaceDark,
       height: 48,
@@ -508,7 +516,7 @@ class _FilterBar extends StatelessWidget {
               label: Text(labels[i]),
               selected: isSelected,
               onSelected: (_) => onSelected(filters[i]),
-              selectedColor: AppColors.adminColor,
+              selectedColor: filterColors[filters[i]] ?? AppColors.adminColor,
               backgroundColor: AppColors.backgroundDark,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : Colors.white70,
@@ -787,23 +795,25 @@ class _CreateJobSheetState extends ConsumerState<_CreateJobSheet> {
 
               // Event selector
               _FormField(
-                label: 'Event *',
+                label: 'Event (Optional)',
                 child: eventsAsync.when(
                   data: (events) => DropdownButtonFormField<EventSummary>(
                     value: _selectedEvent,
                     dropdownColor: AppColors.cardDark,
                     style: const TextStyle(color: Colors.white),
                     decoration: _inputDecoration('Select event'),
-                    items: events
-                        .map((e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(e.title,
-                                  style:
-                                      const TextStyle(color: Colors.white)),
-                            ))
-                        .toList(),
+                    items: [
+                      const DropdownMenuItem<EventSummary>(
+                        value: null,
+                        child: Text('No event', style: TextStyle(color: Colors.white54)),
+                      ),
+                      ...events.map((e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(e.title,
+                                style: const TextStyle(color: Colors.white)),
+                          )),
+                    ],
                     onChanged: (e) => setState(() => _selectedEvent = e),
-                    validator: (v) => v == null ? 'Select an event' : null,
                   ),
                   loading: () => const LinearProgressIndicator(),
                   error: (e, _) => Text('Failed to load events: $e',
@@ -1003,7 +1013,6 @@ class _CreateJobSheetState extends ConsumerState<_CreateJobSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedEvent == null) return;
 
     final currentUser = ref.read(currentUserProvider).valueOrNull ??
         ref.read(authNotifierProvider).user;
@@ -1012,8 +1021,8 @@ class _CreateJobSheetState extends ConsumerState<_CreateJobSheet> {
           adminId: currentUser?.id ?? 'admin',
           title: _titleCtrl.text.trim(),
           description: _descCtrl.text.trim(),
-          eventId: _selectedEvent!.id,
-          eventTitle: _selectedEvent!.title,
+          eventId: _selectedEvent?.id ?? '',
+          eventTitle: _selectedEvent?.title,
           deadline: _deadline,
           jobType: _selectedJobType,
           location: _locationCtrl.text.trim().isEmpty

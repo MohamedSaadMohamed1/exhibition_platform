@@ -4,6 +4,7 @@ import '../../core/constants/enums.dart';
 /// Model representing a request to become an Organizer or Supplier
 class AccountRequestModel {
   final String id;
+  final String userId; // Empty string for unauthenticated submissions
   final String name;
   final String phone;
   final String? email;
@@ -16,6 +17,7 @@ class AccountRequestModel {
 
   const AccountRequestModel({
     required this.id,
+    this.userId = '',
     required this.name,
     required this.phone,
     this.email,
@@ -30,6 +32,7 @@ class AccountRequestModel {
   factory AccountRequestModel.fromJson(Map<String, dynamic> json) {
     return AccountRequestModel(
       id: json['id'] as String? ?? '',
+      userId: json['userId'] as String? ?? '',
       name: json['name'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String?,
@@ -68,6 +71,7 @@ class AccountRequestModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'userId': userId,
       'name': name,
       'phone': phone,
       'email': email,
@@ -98,6 +102,7 @@ class AccountRequestModel {
 
   AccountRequestModel copyWith({
     String? id,
+    String? userId,
     String? name,
     String? phone,
     String? email,
@@ -110,6 +115,7 @@ class AccountRequestModel {
   }) {
     return AccountRequestModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,

@@ -182,6 +182,15 @@ class _CreateSupplierScreenState extends ConsumerState<CreateSupplierScreen> {
                   _phoneNumber = phone.number;
                   _countryCode = phone.countryCode;
                 },
+                validator: (value) {
+                  if (value == null || value.number.isEmpty) {
+                    return 'Phone number is required';
+                  }
+                  final dialCode = value.countryCode.startsWith('+')
+                      ? value.countryCode
+                      : '+${value.countryCode}';
+                  return Validators.validateLocalPhone(value.number, dialCode);
+                },
               ),
               const SizedBox(height: 16),
               // Email

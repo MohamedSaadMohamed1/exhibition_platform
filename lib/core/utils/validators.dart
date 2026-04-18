@@ -32,6 +32,31 @@ abstract class Validators {
     return '$code$cleaned';
   }
 
+  /// Validate a local phone number with optional country-specific rules.
+  ///
+  /// When [countryCode] is '+965' (Kuwait), enforces that the number
+  /// starts with '5' and is exactly 8 digits.
+  /// For other countries, only checks minimum length of 8 digits.
+  static String? validateLocalPhone(String? value, String countryCode) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Phone number is required';
+    }
+    final cleaned = value.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (countryCode == '+965') {
+      if (!cleaned.startsWith('5')) {
+        return 'Kuwait numbers must start with 5';
+      }
+      if (cleaned.length != 8) {
+        return 'Kuwait numbers must be 8 digits';
+      }
+    } else {
+      if (cleaned.length < 8) {
+        return 'Please enter a valid phone number';
+      }
+    }
+    return null;
+  }
+
   /// Validate phone number
   static String? validatePhone(String? value) {
     if (value == null || value.isEmpty) {

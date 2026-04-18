@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/utils/validators.dart';
 import '../../../../router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_background.dart';
@@ -40,10 +41,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleSignIn() {
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty || phone.length < 8) {
+    final phoneError = Validators.validateLocalPhone(phone, _selectedCountryCode);
+    if (phoneError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter a valid phone number'),
+          content: Text(phoneError),
           backgroundColor: AppColors.error,
         ),
       );

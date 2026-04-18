@@ -23,6 +23,7 @@ abstract class AppRoutes {
   static const String adminEditEvent = '/admin/events/:eventId/edit';
   static const String adminJobApplications = '/admin/job-applications';
   static const String adminJobs = '/admin/jobs';
+  static const String adminSupportTickets = '/admin/support-tickets';
 
   // Owner routes
   static const String ownerDashboard = '/owner/dashboard';
@@ -88,6 +89,7 @@ abstract class AppRoutes {
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
   static const String settings = '/settings';
+  static const String helpSupport = '/help-support';
 
   // Interested events
   static const String interestedEvents = '/interested-events';

@@ -188,7 +188,7 @@ class ProfileScreen extends ConsumerWidget {
                     _MenuTile(
                       icon: Icons.favorite,
                       title: 'Interested Events',
-                      onTap: () {},
+                      onTap: () => context.push(AppRoutes.interestedEvents),
                     ),
                   _MenuTile(
                     icon: Icons.chat,
@@ -196,14 +196,9 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => context.push(AppRoutes.chats),
                   ),
                   _MenuTile(
-                    icon: Icons.settings,
-                    title: 'Settings',
-                    onTap: () {},
-                  ),
-                  _MenuTile(
                     icon: Icons.help,
                     title: 'Help & Support',
-                    onTap: () {},
+                    onTap: () => context.push(AppRoutes.helpSupport),
                   ),
                 ],
               ),

@@ -24,6 +24,7 @@ abstract class AppRoutes {
   static const String adminJobApplications = '/admin/job-applications';
   static const String adminJobs = '/admin/jobs';
   static const String adminSupportTickets = '/admin/support-tickets';
+  static const String adminBusinessRequests = '/admin/business-requests';
 
   // Owner routes
   static const String ownerDashboard = '/owner/dashboard';

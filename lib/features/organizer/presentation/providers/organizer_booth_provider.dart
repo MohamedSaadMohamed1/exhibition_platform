@@ -273,6 +273,40 @@ class OrganizerBoothsNotifier extends FamilyNotifier<OrganizerBoothsState, Strin
     );
   }
 
+  /// Update booth status directly (organizer override)
+  Future<bool> updateBoothStatus(String boothId, BoothStatus status) async {
+    state = state.copyWith(
+      isUpdating: true,
+      actionError: null,
+      clearActionError: true,
+    );
+
+    final result = await _boothRepository.updateBoothStatus(
+      eventId: arg,
+      boothId: boothId,
+      status: status,
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isUpdating: false,
+          actionError: failure.message,
+        );
+        return false;
+      },
+      (booth) {
+        state = state.copyWith(isUpdating: false, clearActionError: true);
+        final updatedBooths = state.booths.map((b) {
+          return b.id == boothId ? booth : b;
+        }).toList();
+        state = state.copyWith(booths: updatedBooths);
+        refreshStats();
+        return true;
+      },
+    );
+  }
+
   /// Delete a booth
   Future<bool> deleteBooth(String boothId) async {
     state = state.copyWith(

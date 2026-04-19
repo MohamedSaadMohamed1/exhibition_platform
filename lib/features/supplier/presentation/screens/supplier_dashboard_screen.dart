@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +10,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../router/routes.dart';
+import '../../../../shared/models/business_request_model.dart';
 import '../../../../shared/models/service_model.dart';
+import '../../../../shared/models/supplier_model.dart';
 import '../../../../shared/models/order_model.dart';
 import '../../../../shared/models/chat_model.dart';
 import '../../../../shared/providers/providers.dart';
@@ -306,7 +309,7 @@ class _BusinessSwitcherHeader extends ConsumerWidget {
                             Icon(Icons.add, color: AppColors.supplierColor, size: 20),
                             SizedBox(width: 8),
                             Text(
-                              'Create New Business',
+                              'Request New Business',
                               style: TextStyle(color: AppColors.supplierColor),
                             ),
                           ],
@@ -326,81 +329,31 @@ class _BusinessSwitcherHeader extends ConsumerWidget {
   }
 
   void _showCreateBusinessDialog(BuildContext context, WidgetRef ref) {
-    final controller = TextEditingController();
-    bool isLoading = false;
-
+    // Direct creation is no longer allowed — route to the request flow.
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: AppColors.surfaceDark,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text('Create New Business', style: TextStyle(color: Colors.white)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Enter a name for your new business profile.',
-                    style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: controller,
-                    style: const TextStyle(color: AppColors.textPrimaryDark),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Elite Catering Co.',
-                      hintStyle: const TextStyle(color: AppColors.textMutedDark),
-                      filled: true,
-                      fillColor: AppColors.cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isLoading ? null : () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          if (controller.text.trim().isEmpty) return;
-                          setState(() => isLoading = true);
-                          
-                          try {
-                            await createBusinessProfile(ref, controller.text.trim());
-                            if (context.mounted) Navigator.pop(context);
-                          } finally {
-                            if (context.mounted) setState(() => isLoading = false);
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.supplierColor,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(0, 44),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Create'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Request New Business',
+            style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'To add a new business, go to Profile → "Request New Business" and fill in the details. An admin will review and approve your request.',
+          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 14),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.supplierColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1591,6 +1544,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
                                 controller: _priceController,
                                 hint: '0.00',
                                 keyboardType: TextInputType.number,
+                                suffixText: 'KD',
                               ),
                             ],
                           ),
@@ -1697,6 +1651,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    String? suffixText,
   }) {
     return TextFormField(
       controller: controller,
@@ -1706,6 +1661,11 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: AppColors.textMutedDark),
+        suffixText: suffixText,
+        suffixStyle: const TextStyle(
+          color: AppColors.textSecondaryDark,
+          fontWeight: FontWeight.w600,
+        ),
         filled: true,
         fillColor: AppColors.cardDark,
         border: OutlineInputBorder(
@@ -2457,22 +2417,22 @@ class _ProfileTab extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.supplierBusinessSettings),
             ),
             _ProfileMenuItem(
-              icon: Icons.analytics_rounded,
-              title: 'Analytics',
-              subtitle: 'View your performance',
-              onTap: () {},
-            ),
-            _ProfileMenuItem(
               icon: Icons.notifications_rounded,
               title: 'Notifications',
               subtitle: 'Manage notification preferences',
-              onTap: () {},
+              onTap: () => context.push(AppRoutes.notifications),
             ),
             _ProfileMenuItem(
               icon: Icons.help_rounded,
               title: 'Help & Support',
               subtitle: 'Get help or contact us',
-              onTap: () {},
+              onTap: () => context.push(AppRoutes.helpSupport),
+            ),
+            _ProfileMenuItem(
+              icon: Icons.add_business_rounded,
+              title: 'Request New Business',
+              subtitle: 'Submit a new business for admin approval',
+              onTap: () => _showNewBusinessRequestSheet(context, ref),
             ),
             const SizedBox(height: 8),
             _ProfileMenuItem(
@@ -2488,6 +2448,45 @@ class _ProfileTab extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _showNewBusinessRequestSheet(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.read(currentUserProvider).valueOrNull;
+    if (currentUser == null) return;
+
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _NewBusinessRequestSheet(
+        currentUser: currentUser,
+        nameCtrl: nameCtrl,
+        descCtrl: descCtrl,
+        emailCtrl: emailCtrl,
+        addressCtrl: addressCtrl,
+        onSuccess: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Request submitted! Awaiting admin approval.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+      ),
+    ).whenComplete(() {
+      nameCtrl.dispose();
+      descCtrl.dispose();
+      emailCtrl.dispose();
+      addressCtrl.dispose();
+    });
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
@@ -2520,6 +2519,289 @@ class _ProfileTab extends ConsumerWidget {
             child: const Text('Logout'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// NEW BUSINESS REQUEST SHEET
+// ============================================================================
+class _NewBusinessRequestSheet extends StatefulWidget {
+  final dynamic currentUser;
+  final TextEditingController nameCtrl;
+  final TextEditingController descCtrl;
+  final TextEditingController emailCtrl;
+  final TextEditingController addressCtrl;
+  final VoidCallback onSuccess;
+
+  const _NewBusinessRequestSheet({
+    required this.currentUser,
+    required this.nameCtrl,
+    required this.descCtrl,
+    required this.emailCtrl,
+    required this.addressCtrl,
+    required this.onSuccess,
+  });
+
+  @override
+  State<_NewBusinessRequestSheet> createState() =>
+      _NewBusinessRequestSheetState();
+}
+
+class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
+  final _formKey = GlobalKey<FormState>();
+  String? _selectedCategory;
+  String? _completePhone; // full E.164 phone e.g. +96512345678
+  bool _submitting = false;
+  String? _errorMsg;
+
+  Future<void> _submit() async {
+    setState(() => _errorMsg = null);
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) {
+      setState(() => _errorMsg = 'Please select a category.');
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      final doc = FirebaseFirestore.instance
+          .collection(FirestoreCollections.businessRequests)
+          .doc();
+      final request = BusinessRequestModel(
+        id: doc.id,
+        supplierId: widget.currentUser.id as String,
+        supplierName: widget.currentUser.name as String,
+        businessName: widget.nameCtrl.text.trim(),
+        description: widget.descCtrl.text.trim(),
+        category: _selectedCategory,
+        contactEmail: widget.emailCtrl.text.trim().isEmpty
+            ? null
+            : widget.emailCtrl.text.trim(),
+        contactPhone: _completePhone,
+        address: widget.addressCtrl.text.trim().isEmpty
+            ? null
+            : widget.addressCtrl.text.trim(),
+        createdAt: DateTime.now(),
+      );
+      await doc.set(request.toFirestore());
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onSuccess();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _errorMsg = 'Failed to submit: $e';
+        });
+      }
+    }
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AppColors.textMutedDark),
+      filled: true,
+      fillColor: AppColors.cardDark,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.supplierColor),
+      ),
+      errorStyle: const TextStyle(color: AppColors.error),
+    );
+  }
+
+  Widget _label(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.textPrimaryDark,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey600,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Request New Business',
+                style: TextStyle(
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Your request will be reviewed by an admin.',
+                style:
+                    TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              _label('Business Name'),
+              TextFormField(
+                controller: widget.nameCtrl,
+                style: const TextStyle(color: AppColors.textPrimaryDark),
+                decoration: _inputDecoration('Enter business name'),
+                validator: (v) =>
+                    v?.trim().isEmpty == true ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              _label('Category'),
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                dropdownColor: AppColors.cardDark,
+                style: const TextStyle(color: AppColors.textPrimaryDark),
+                decoration: _inputDecoration('Select category'),
+                items: SupplierCategories.all
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedCategory = v),
+              ),
+              const SizedBox(height: 16),
+              _label('Description'),
+              TextFormField(
+                controller: widget.descCtrl,
+                style: const TextStyle(color: AppColors.textPrimaryDark),
+                maxLines: 3,
+                decoration: _inputDecoration('Describe your business'),
+                validator: (v) =>
+                    v?.trim().isEmpty == true ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              _label('Contact Email (optional)'),
+              TextFormField(
+                controller: widget.emailCtrl,
+                style: const TextStyle(color: AppColors.textPrimaryDark),
+                keyboardType: TextInputType.emailAddress,
+                decoration: _inputDecoration('business@example.com'),
+              ),
+              const SizedBox(height: 16),
+              _label('Contact Phone (optional)'),
+              IntlPhoneField(
+                initialCountryCode: 'KW',
+                style: const TextStyle(color: AppColors.textPrimaryDark),
+                dropdownTextStyle:
+                    const TextStyle(color: AppColors.textPrimaryDark),
+                dropdownIcon: const Icon(Icons.arrow_drop_down,
+                    color: AppColors.textSecondaryDark),
+                decoration: InputDecoration(
+                  hintText: 'Phone number',
+                  hintStyle:
+                      const TextStyle(color: AppColors.textMutedDark),
+                  filled: true,
+                  fillColor: AppColors.cardDark,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.supplierColor),
+                  ),
+                ),
+                onChanged: (phone) {
+                  _completePhone =
+                      phone.number.isEmpty ? null : phone.completeNumber;
+                },
+                invalidNumberMessage: null, // optional field — skip validation
+              ),
+              const SizedBox(height: 16),
+              _label('Address (optional)'),
+              TextFormField(
+                controller: widget.addressCtrl,
+                style: const TextStyle(color: AppColors.textPrimaryDark),
+                decoration: _inputDecoration('City, Country'),
+              ),
+              if (_errorMsg != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppColors.error, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMsg!,
+                          style: const TextStyle(
+                              color: AppColors.error, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.supplierColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Submit Request',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
       ),
     );
   }

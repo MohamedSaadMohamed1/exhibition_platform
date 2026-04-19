@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/enums.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
@@ -12,6 +11,8 @@ import '../widgets/booth_management/booth_list_item.dart';
 import '../widgets/booth_management/booth_stats_card.dart';
 import '../widgets/booth_management/booth_filter_sheet.dart';
 import '../widgets/booth_management/batch_create_dialog.dart';
+import '../widgets/booth_management/booth_detail_sheet.dart';
+import '../../../../shared/providers/providers.dart';
 
 class ManageBoothsScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -276,128 +277,19 @@ class _ManageBoothsScreenState extends ConsumerState<ManageBoothsScreen> {
   }
 
   void _showBoothDetails(BoothModel booth) {
+    final organizerId =
+        ref.read(currentUserProvider).valueOrNull?.id ?? '';
+    final notifier =
+        ref.read(organizerBoothsProvider(widget.eventId).notifier);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(booth.status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.storefront,
-                    color: _getStatusColor(booth.status),
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Booth ${booth.boothNumber}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Text(
-                        booth.sizeDisplayText,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(booth.status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    booth.status.value.toUpperCase(),
-                    style: TextStyle(
-                      color: _getStatusColor(booth.status),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Price
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Price'),
-                Text(
-                  'KD ${booth.price.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.organizerColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            if (booth.category != null) ...[
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Category'),
-                  Text(booth.category!),
-                ],
-              ),
-            ],
-            const Divider(height: 32),
-            // Amenities
-            if (booth.amenities.isNotEmpty) ...[
-              Text(
-                'Amenities',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: booth.amenities
-                    .map((a) => Chip(
-                          label: Text(a, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: AppColors.grey800,
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(height: 16),
-            ],
-            // Description
-            if (booth.description != null) ...[
-              Text(
-                'Description',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(booth.description!),
-              const SizedBox(height: 16),
-            ],
-            SizedBox(height: MediaQuery.of(context).padding.bottom),
-          ],
-        ),
+      builder: (context) => BoothDetailSheet(
+        booth: booth,
+        organizerId: organizerId,
+        eventId: widget.eventId,
+        onStatusChanged: () => notifier.refresh(),
       ),
     );
   }
@@ -450,17 +342,6 @@ class _ManageBoothsScreenState extends ConsumerState<ManageBoothsScreen> {
     );
   }
 
-  Color _getStatusColor(BoothStatus status) {
-    switch (status) {
-      case BoothStatus.available:
-        return AppColors.boothAvailable;
-      case BoothStatus.reserved:
-        return AppColors.boothReserved;
-      case BoothStatus.booked:
-      case BoothStatus.occupied:
-        return AppColors.boothBooked;
-    }
-  }
 }
 
 class _FilterChip extends StatelessWidget {

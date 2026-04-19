@@ -405,6 +405,22 @@ service cloud.firestore {
     }
 
     // ========================
+    // BUSINESS REQUESTS COLLECTION
+    // ========================
+    match /business_requests/{requestId} {
+      // Authenticated users can submit a request for their own supplierId
+      allow create: if isAuthenticated()
+        && request.resource.data.supplierId == currentUserId()
+        && request.resource.data.status == 'pending';
+
+      allow read: if isAuthenticated()
+        && (resource.data.supplierId == currentUserId() || isAdmin());
+
+      // Only admin can approve/reject
+      allow update, delete: if isAdmin();
+    }
+
+    // ========================
     // SUPPORT TICKETS COLLECTION
     // ========================
     match /support_tickets/{ticketId} {

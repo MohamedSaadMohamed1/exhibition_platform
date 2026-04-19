@@ -57,6 +57,13 @@ abstract class BoothRepository {
   /// Delete booth (Organizer only)
   Future<Either<Failure, void>> deleteBooth(String eventId, String boothId);
 
+  /// Update booth status directly (Organizer only)
+  Future<Either<Failure, BoothModel>> updateBoothStatus({
+    required String eventId,
+    required String boothId,
+    required BoothStatus status,
+  });
+
   /// Reserve booth with transaction (Exhibitor)
   Future<Either<Failure, BoothModel>> reserveBooth({
     required String eventId,

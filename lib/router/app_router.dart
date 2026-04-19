@@ -56,6 +56,7 @@ import '../features/services/presentation/screens/service_detail_screen.dart';
 import '../features/notifications/presentation/screens/notifications_screen.dart';
 import '../features/support/presentation/screens/help_support_screen.dart';
 import '../features/admin/presentation/screens/admin_support_tickets_screen.dart';
+import '../features/admin/presentation/screens/admin_business_requests_screen.dart';
 
 /// GoRouter provider with role-based guards
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -217,6 +218,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminSupportTickets,
         builder: (context, state) => const AdminSupportTicketsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminBusinessRequests,
+        builder: (context, state) => const AdminBusinessRequestsScreen(),
       ),
 
       // Owner Routes

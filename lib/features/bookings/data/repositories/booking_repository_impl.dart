@@ -360,6 +360,29 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
+  Future<Either<Failure, BookingRequest?>> getActiveBookingByBoothId(
+    String boothId,
+  ) async {
+    try {
+      final snapshot = await _bookingsCollection
+          .where('boothId', isEqualTo: boothId)
+          .where('status', whereIn: [
+            BookingStatus.pending.value,
+            BookingStatus.approved.value,
+            BookingStatus.confirmed.value,
+          ])
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return const Right(null);
+      return Right(BookingRequest.fromFirestore(snapshot.docs.first));
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, bool>> hasExistingBooking({
     required String exhibitorId,
     required String boothId,

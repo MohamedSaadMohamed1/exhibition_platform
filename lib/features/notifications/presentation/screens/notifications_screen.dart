@@ -151,10 +151,44 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
 
     if (state.notifications.isEmpty) {
-      return const EmptyStateWidget(
-        title: 'No notifications',
-        subtitle: 'You\'re all caught up!',
-        icon: Icons.notifications_none,
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.grey800,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.notifications_none,
+                  size: 48,
+                  color: AppColors.textSecondaryDark,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'No notifications',
+                style: TextStyle(
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You\'re all caught up!',
+                style: TextStyle(
+                  color: AppColors.textSecondaryDark,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

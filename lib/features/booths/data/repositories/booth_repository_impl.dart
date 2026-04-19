@@ -222,6 +222,25 @@ class BoothRepositoryImpl implements BoothRepository {
   }
 
   @override
+  Future<Either<Failure, BoothModel>> updateBoothStatus({
+    required String eventId,
+    required String boothId,
+    required BoothStatus status,
+  }) async {
+    try {
+      await _boothsCollection(eventId).doc(boothId).update({
+        'status': status.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      final updatedDoc = await _boothsCollection(eventId).doc(boothId).get();
+      return Right(BoothModel.fromFirestore(updatedDoc, eventId));
+    } catch (e) {
+      return Left(e.toFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteBooth(
     String eventId,
     String boothId,

@@ -48,8 +48,6 @@ class NotificationsNotifier extends FamilyNotifier<NotificationsState, String> {
   }
 
   Future<void> _loadNotifications(String userId, {bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
-
     state = state.copyWith(
       isLoading: true,
       errorMessage: null,

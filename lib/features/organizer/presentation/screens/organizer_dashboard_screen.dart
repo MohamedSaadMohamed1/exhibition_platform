@@ -173,7 +173,7 @@ class _DashboardTab extends ConsumerWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                    onPressed: () {},
+                    onPressed: () => context.push(AppRoutes.notifications),
                   ),
                 ],
               ),
@@ -895,19 +895,14 @@ class _ProfileTab extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.editProfile),
             ),
             _ProfileMenuItem(
-              icon: Icons.business,
-              title: 'Organization Settings',
-              onTap: () {},
-            ),
-            _ProfileMenuItem(
               icon: Icons.notifications,
               title: 'Notifications',
-              onTap: () {},
+              onTap: () => context.push(AppRoutes.notifications),
             ),
             _ProfileMenuItem(
               icon: Icons.help,
               title: 'Help & Support',
-              onTap: () {},
+              onTap: () => context.push(AppRoutes.helpSupport),
             ),
             const SizedBox(height: 16),
             _ProfileMenuItem(

@@ -51,6 +51,8 @@ abstract class FirestoreCollections {
   static const String interestedUsers = 'interested_users';
   static const String appConfig = 'app_config';
   static const String accountRequests = 'account_requests';
+  static const String businessRequests = 'business_requests';
+  static const String supportTickets = 'support_tickets';
 }
 
 /// Firebase Storage paths

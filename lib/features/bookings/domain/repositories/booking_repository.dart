@@ -61,6 +61,9 @@ abstract class BookingRepository {
     String? reason,
   });
 
+  /// Get active booking for a specific booth (pending, approved, or confirmed)
+  Future<Either<Failure, BookingRequest?>> getActiveBookingByBoothId(String boothId);
+
   /// Check if exhibitor has pending booking for booth
   Future<Either<Failure, bool>> hasExistingBooking({
     required String exhibitorId,

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/providers/providers.dart';
 import '../providers/admin_provider.dart';
@@ -75,8 +78,10 @@ class _CreateOrganizerScreenState extends ConsumerState<CreateOrganizerScreen> {
       appBar: AppBar(
         title: const Text('Create Organizer'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: ResponsiveConstrainedBox(
+        maxWidth: AppDimensions.maxWidthTablet,
+        child: SingleChildScrollView(
+        padding: EdgeInsets.all(AppDimensions.spacingLg.w),
         child: Form(
           key: _formKey,
           child: Column(
@@ -208,6 +213,7 @@ class _CreateOrganizerScreenState extends ConsumerState<CreateOrganizerScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

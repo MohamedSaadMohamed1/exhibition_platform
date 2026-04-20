@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../shared/models/supplier_model.dart';
@@ -64,15 +67,14 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
       body: Column(
         children: [
           // Explore Suppliers Title
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          Padding(
+            padding: EdgeInsets.fromLTRB(AppDimensions.spacingLg.w, AppDimensions.spacingLg.h, AppDimensions.spacingLg.w, AppDimensions.spacingSm.h),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Explore Suppliers',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
-                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -80,10 +82,10 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
           ),
           // Category Filter Chips
           SizedBox(
-            height: 50,
+            height: 50.h,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg.w),
               children: [
                 _CategoryChip(
                   label: 'All',
@@ -178,17 +180,27 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
       );
     }
 
+    final crossAxisCount = context.isMobile
+        ? AppDimensions.gridColumnsMobile
+        : AppDimensions.gridColumnsTablet;
+
     return RefreshIndicator(
       onRefresh: () => ref.read(suppliersNotifierProvider.notifier).refresh(),
-      child: ListView.builder(
+      child: GridView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(AppDimensions.spacingLg.w),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: AppDimensions.gridSpacing,
+          mainAxisSpacing: AppDimensions.gridSpacing,
+          childAspectRatio: 0.85,
+        ),
         itemCount: state.suppliers.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == state.suppliers.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
+            return Padding(
+              padding: EdgeInsets.all(AppDimensions.spacingLg.r),
+              child: const Center(child: CircularProgressIndicator()),
             );
           }
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../shared/models/job_model.dart';
@@ -48,9 +50,11 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
       backgroundColor: AppColors.scaffoldDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text(
+        title: Text(
           'Event Jobs',
-          style: TextStyle(color: AppColors.textPrimaryDark),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: AppColors.textPrimaryDark,
+          ),
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimaryDark),
         actions: [

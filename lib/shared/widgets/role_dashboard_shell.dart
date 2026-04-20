@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Navigation item configuration
@@ -47,13 +48,13 @@ class RoleDashboardShell extends StatelessWidget {
       body: body,
       bottomNavigationBar: showFloatingNav
           ? Container(
-              margin: EdgeInsets.fromLTRB(24, 0, 24, 16 + bottomPadding),
+              margin: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h + bottomPadding),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(30),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -133,8 +134,8 @@ class _NavItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 16 : 12,
-          vertical: 8,
+          horizontal: isSelected ? 16.w : 12.w,
+          vertical: 8.h,
         ),
         decoration: BoxDecoration(
           gradient: isSelected
@@ -164,15 +165,15 @@ class _NavItem extends StatelessWidget {
             Icon(
               icon,
               color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
-              size: 22,
+              size: 22.r,
             ),
             if (isSelected) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 6.w),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 13,
+                  fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),

@@ -2,10 +2,13 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../shared/services/storage_service.dart';
@@ -295,8 +298,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: ResponsiveConstrainedBox(
+        maxWidth: AppDimensions.maxWidthMobile,
+        child: SingleChildScrollView(
+        padding: EdgeInsets.all(AppDimensions.spacingLg.w),
         child: Form(
           key: _formKey,
           child: Column(
@@ -414,6 +419,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

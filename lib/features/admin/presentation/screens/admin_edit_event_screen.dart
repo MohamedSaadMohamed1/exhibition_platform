@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../shared/models/event_model.dart';
 import '../../../../shared/providers/repository_providers.dart';
 import '../providers/admin_events_provider.dart';
@@ -168,8 +171,10 @@ class _AdminEditEventScreenState extends ConsumerState<AdminEditEventScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: ResponsiveConstrainedBox(
+        maxWidth: AppDimensions.maxWidthTablet,
+        child: SingleChildScrollView(
+        padding: EdgeInsets.all(AppDimensions.spacingLg.w),
         child: Form(
           key: _formKey,
           child: Column(
@@ -275,6 +280,7 @@ class _AdminEditEventScreenState extends ConsumerState<AdminEditEventScreen> {
               const SizedBox(height: 32),
             ],
           ),
+        ),
         ),
       ),
     );

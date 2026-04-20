@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
 import '../../../../router/routes.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -54,7 +56,7 @@ class ProfileScreen extends ConsumerWidget {
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(AppDimensions.spacingLg.w),
         child: Column(
           children: [
 
@@ -62,12 +64,12 @@ class ProfileScreen extends ConsumerWidget {
             Card(
               color: AppColors.surfaceDark,
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(AppDimensions.spacingXxl.w),
                 child: Column(
                   children: [
                     Container(
-                      width: 100,
-                      height: 100,
+                      width: AppDimensions.avatarXxl.r,
+                      height: AppDimensions.avatarXxl.r,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.primary.withOpacity(0.2),
@@ -77,16 +79,15 @@ class ProfileScreen extends ConsumerWidget {
                                 currentUser.profileImage!.isNotEmpty
                             ? Image.network(
                                 currentUser.profileImage!,
-                                width: 100,
-                                height: 100,
+                                width: AppDimensions.avatarXxl.r,
+                                height: AppDimensions.avatarXxl.r,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Center(
                                   child: Text(
                                     currentUser.name.isNotEmpty
                                         ? currentUser.name[0].toUpperCase()
                                         : '?',
-                                    style: const TextStyle(
-                                      fontSize: 36,
+                                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -98,8 +99,7 @@ class ProfileScreen extends ConsumerWidget {
                                   currentUser.name.isNotEmpty
                                       ? currentUser.name[0].toUpperCase()
                                       : '?',
-                                  style: const TextStyle(
-                                    fontSize: 36,
+                                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -108,34 +108,29 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    SizedBox(height: AppDimensions.spacingLg.h),
 
                     Text(
                       currentUser.name,
-                      style: const TextStyle(
-                        fontSize: 22,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6.h),
 
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                       decoration: BoxDecoration(
                         color: _getRoleColor(currentUser.role).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
                         currentUser.role.value.toUpperCase(),
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
                           color: _getRoleColor(currentUser.role),
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -144,7 +139,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: AppDimensions.spacingLg.h),
 
             /// Info Card
             Card(
@@ -171,7 +166,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: AppDimensions.spacingLg.h),
 
             /// Menu
             Card(

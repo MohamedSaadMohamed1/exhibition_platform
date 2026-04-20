@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../router/routes.dart';
@@ -215,11 +218,13 @@ class _DashboardTab extends ConsumerWidget {
             analyticsState.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : GridView.count(
-                    crossAxisCount: 2,
+                    crossAxisCount: context.isMobile
+                        ? AppDimensions.gridColumnsMobile
+                        : AppDimensions.gridColumnsTablet,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
+                    mainAxisSpacing: AppDimensions.spacingMd,
+                    crossAxisSpacing: AppDimensions.spacingMd,
                     childAspectRatio: 1.3,
                     children: [
                       _StatCard(

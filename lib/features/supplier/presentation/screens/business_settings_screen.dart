@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../shared/models/supplier_model.dart';
 import '../../../../shared/models/service_model.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -176,11 +179,13 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
         title: const Text('Business Settings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator()) 
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Form(
+      body: ResponsiveConstrainedBox(
+        maxWidth: AppDimensions.maxWidthMobile,
+        child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: EdgeInsets.all(AppDimensions.spacingLg.w),
+              child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,6 +374,7 @@ class _BusinessSettingsScreenState extends ConsumerState<BusinessSettingsScreen>
               ),
             ),
           ),
+      ),
     );
   }
 

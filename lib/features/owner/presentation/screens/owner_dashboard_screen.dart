@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../router/routes.dart';
 import '../../../../shared/providers/providers.dart';
 import '../../../../shared/widgets/role_dashboard_shell.dart';
@@ -166,11 +169,13 @@ class _DashboardTab extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             GridView.count(
-              crossAxisCount: 2,
+              crossAxisCount: context.isMobile
+                  ? AppDimensions.gridColumnsMobile
+                  : AppDimensions.gridColumnsTablet,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
+              mainAxisSpacing: AppDimensions.spacingMd,
+              crossAxisSpacing: AppDimensions.spacingMd,
               childAspectRatio: 1.3,
               children: [
                 _StatCard(

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../router/routes.dart';
 import '../../../../shared/providers/providers.dart';
 import '../providers/admin_provider.dart';
@@ -125,11 +128,13 @@ class AdminDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               userStatsAsync.when(
                 data: (stats) => GridView.count(
-                  crossAxisCount: 2,
+                  crossAxisCount: context.isMobile
+                      ? AppDimensions.gridColumnsMobile
+                      : AppDimensions.gridColumnsTablet,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
+                  mainAxisSpacing: AppDimensions.spacingMd,
+                  crossAxisSpacing: AppDimensions.spacingMd,
                   childAspectRatio: 1.5,
                   children: [
                     _StatCard(

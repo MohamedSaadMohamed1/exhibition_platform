@@ -43,7 +43,7 @@ class NotificationsNotifier extends FamilyNotifier<NotificationsState, String> {
   @override
   NotificationsState build(String userId) {
     _notificationRepository = ref.watch(notificationRepositoryProvider);
-    _loadNotifications(userId);
+    Future.microtask(() => _loadNotifications(userId));
     return const NotificationsState(isLoading: true);
   }
 

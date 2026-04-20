@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../../../router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_background.dart';
@@ -17,14 +20,8 @@ class OtpScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
-  final List<TextEditingController> _controllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-    (index) => FocusNode(),
-  );
+  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   Timer? _resendTimer;
   int _resendSeconds = 60;
@@ -42,12 +39,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   void dispose() {
     _resendTimer?.cancel();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    for (var c in _controllers) c.dispose();
+    for (var n in _focusNodes) n.dispose();
     super.dispose();
   }
 
@@ -70,13 +63,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   String get _otp => _controllers.map((c) => c.text).join();
 
   void _onOtpChanged(String value, int index) {
-    if (value.isNotEmpty && index < 5) {
-      _focusNodes[index + 1].requestFocus();
-    }
-
-    if (_otp.length == 6) {
-      _verifyOtp();
-    }
+    if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
+    if (_otp.length == 6) _verifyOtp();
   }
 
   void _onKeyDown(KeyEvent event, int index) {
@@ -89,30 +77,24 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   void _verifyOtp() {
-    if (_otp.length == 6) {
-      // Verify OTP via auth provider
-      ref.read(authNotifierProvider.notifier).verifyOtp(_otp);
-    }
+    if (_otp.length == 6) ref.read(authNotifierProvider.notifier).verifyOtp(_otp);
   }
 
   void _clearOtp() {
-    for (var controller in _controllers) {
-      controller.clear();
-    }
+    for (var c in _controllers) c.clear();
     _focusNodes[0].requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
+    final textTheme = Theme.of(context).textTheme;
 
     ref.listen(authNotifierProvider, (previous, next) {
       if (next.status == AuthStatus.profileIncomplete) {
         context.go(AppRoutes.completeProfile);
       } else if (next.status == AuthStatus.authenticated) {
-        final role = next.user?.role;
-        // Navigate based on role
-        context.go(role?.homeRoute ?? AppRoutes.home);
+        context.go(next.user?.role?.homeRoute ?? AppRoutes.home);
       }
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -120,9 +102,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             content: Text(next.errorMessage!),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
           ),
         );
         _clearOtp();
@@ -133,94 +113,85 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       body: AuthBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  // Back button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildBackButton(),
-                  ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.08),
-                  // Glassmorphic OTP Card
-                  GlassmorphicCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        children: [
-                          // Icon
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.primary.withOpacity(0.3),
-                                  AppColors.primaryLight.withOpacity(0.2),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.message_outlined,
-                              size: 36,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // Title
-                          const Text(
-                            'Verify Your Number',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Enter the 6-digit code sent to your phone',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.7),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 32),
-                          // OTP Input Fields
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: List.generate(6, (index) {
-                              return Flexible(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index < 5 ? 8.0 : 0,
-                                  ),
-                                  child: _buildOtpField(index),
+            child: ResponsiveConstrainedBox(
+              maxWidth: AppDimensions.maxWidthMobile,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Column(
+                  children: [
+                    SizedBox(height: AppDimensions.spacingLg.h),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _buildBackButton(),
+                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                    GlassmorphicCard(
+                      child: Padding(
+                        padding: EdgeInsets.all(28.r),
+                        child: Column(
+                          children: [
+                            // Icon
+                            Container(
+                              width: 80.r,
+                              height: 80.r,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primary.withOpacity(0.3),
+                                    AppColors.primaryLight.withOpacity(0.2),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                              );
-                            }),
-                          ),
-                          const SizedBox(height: 32),
-                          // Verify Button
-                          _buildVerifyButton(authState.isLoading),
-                          const SizedBox(height: 24),
-                          // Resend Code
-                          _buildResendSection(authState.isLoading),
-                        ],
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Icon(Icons.message_outlined, size: 36.r, color: Colors.white),
+                            ),
+                            SizedBox(height: AppDimensions.spacingXxl.h),
+                            // Title
+                            Text(
+                              'Verify Your Number',
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: AppDimensions.spacingSm.h),
+                            Text(
+                              'Enter the 6-digit code sent to your phone',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: AppDimensions.spacing3xl.h),
+                            // OTP Input Fields
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: List.generate(6, (index) {
+                                return Flexible(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(right: index < 5 ? 8.w : 0),
+                                    child: _buildOtpField(index, textTheme),
+                                  ),
+                                );
+                              }),
+                            ),
+                            SizedBox(height: AppDimensions.spacing3xl.h),
+                            _buildVerifyButton(authState.isLoading, textTheme),
+                            SizedBox(height: AppDimensions.spacingXxl.h),
+                            _buildResendSection(authState.isLoading, textTheme),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                    SizedBox(height: 40.h),
+                  ],
+                ),
               ),
             ),
           ),
@@ -233,26 +204,20 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     return GestureDetector(
       onTap: () => context.pop(),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12.r),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-          ),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
         ),
-        child: const Icon(
-          Icons.arrow_back,
-          color: Colors.white,
-          size: 20,
-        ),
+        child: Icon(Icons.arrow_back, color: Colors.white, size: 20.r),
       ),
     );
   }
 
-  Widget _buildOtpField(int index) {
+  Widget _buildOtpField(int index, TextTheme textTheme) {
     return SizedBox(
-      height: 55,
+      height: 55.h,
       child: KeyboardListener(
         focusNode: FocusNode(),
         onKeyEvent: (event) => _onKeyDown(event, index),
@@ -262,8 +227,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          style: const TextStyle(
-            fontSize: 22,
+          style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -272,62 +236,43 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             filled: true,
             fillColor: Colors.white.withOpacity(0.1),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.2),
-              ),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.2),
-              ),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: AppColors.primary,
-                width: 2,
-              ),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            contentPadding: EdgeInsets.symmetric(vertical: 14.h),
           ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           onChanged: (value) => _onOtpChanged(value, index),
         ),
       ),
     );
   }
 
-  Widget _buildVerifyButton(bool isLoading) {
+  Widget _buildVerifyButton(bool isLoading, TextTheme textTheme) {
     final isComplete = _otp.length == 6;
-
     return Container(
       width: double.infinity,
-      height: 56,
+      height: AppDimensions.buttonHeightLg.h,
       decoration: BoxDecoration(
         gradient: isComplete
             ? LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primaryLight,
-                ],
+                colors: [AppColors.primary, AppColors.primaryLight],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               )
             : null,
         color: isComplete ? null : Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(28.r),
         boxShadow: isComplete
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ]
+            ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))]
             : null,
       ),
       child: ElevatedButton(
@@ -336,39 +281,29 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           disabledBackgroundColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
         ),
         child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
+            ? SizedBox(
+                width: 24.r,
+                height: 24.r,
+                child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Verify',
-                    style: TextStyle(
-                      color: isComplete
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.5),
-                      fontSize: 16,
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: isComplete ? Colors.white : Colors.white.withOpacity(0.5),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: AppDimensions.spacingSm.w),
                   Icon(
                     Icons.check,
-                    color: isComplete
-                        ? Colors.white
-                        : Colors.white.withOpacity(0.5),
-                    size: 20,
+                    color: isComplete ? Colors.white : Colors.white.withOpacity(0.5),
+                    size: 20.r,
                   ),
                 ],
               ),
@@ -376,29 +311,21 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     );
   }
 
-  Widget _buildResendSection(bool isLoading) {
+  Widget _buildResendSection(bool isLoading, TextTheme textTheme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           "Didn't receive code? ",
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: 14,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: Colors.white.withOpacity(0.7)),
         ),
         if (_canResend)
           GestureDetector(
-            onTap: isLoading
-                ? null
-                : () {
-                    context.pop();
-                  },
+            onTap: isLoading ? null : () => context.pop(),
             child: Text(
               'Resend',
-              style: TextStyle(
+              style: textTheme.bodyMedium?.copyWith(
                 color: AppColors.secondary,
-                fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -406,10 +333,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         else
           Text(
             'Resend in ${_resendSeconds}s',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
-              fontSize: 14,
-            ),
+            style: textTheme.bodyMedium?.copyWith(color: Colors.white.withOpacity(0.5)),
           ),
       ],
     );

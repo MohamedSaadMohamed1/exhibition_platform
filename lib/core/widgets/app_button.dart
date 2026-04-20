@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_dimensions.dart';
 
 /// Primary button style
 enum AppButtonStyle { primary, secondary, outline, text, danger }
@@ -25,7 +27,7 @@ class AppButton extends StatelessWidget {
     this.isFullWidth = true,
     this.icon,
     this.width,
-    this.height = 52,
+    this.height = AppDimensions.buttonHeightLg,
     this.borderRadius = 50,
   });
 
@@ -33,7 +35,7 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: isFullWidth ? double.infinity : width,
-      height: height,
+      height: height.h,
       child: _buildButton(context),
     );
   }
@@ -41,8 +43,8 @@ class AppButton extends StatelessWidget {
   Widget _buildButton(BuildContext context) {
     final child = isLoading
         ? SizedBox(
-            height: 20,
-            width: 20,
+            height: 20.r,
+            width: 20.r,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(
@@ -50,7 +52,7 @@ class AppButton extends StatelessWidget {
               ),
             ),
           )
-        : _buildContent();
+        : _buildContent(context);
 
     switch (style) {
       case AppButtonStyle.primary:
@@ -135,19 +137,21 @@ class AppButton extends StatelessWidget {
     }
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     final label = Text(
       text,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(fontWeight: FontWeight.bold),
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
     );
     if (icon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
+          Icon(icon, size: 20.r),
+          SizedBox(width: 8.w),
           Flexible(child: label),
         ],
       );
@@ -187,12 +191,13 @@ class AppIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaledSize = size.r;
     return InkWell(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(size / 2),
+      borderRadius: BorderRadius.circular(scaledSize / 2),
       child: Container(
-        width: size,
-        height: size,
+        width: scaledSize,
+        height: scaledSize,
         decoration: BoxDecoration(
           color: backgroundColor ?? AppColors.grey100,
           shape: BoxShape.circle,
@@ -200,7 +205,7 @@ class AppIconButton extends StatelessWidget {
         child: Icon(
           icon,
           color: iconColor ?? AppColors.textPrimary,
-          size: size * 0.5,
+          size: scaledSize * 0.5,
         ),
       ),
     );

@@ -5,9 +5,14 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../shared/models/service_model.dart';
+import '../../../../shared/models/order_model.dart';
 import '../../../../shared/models/review_model.dart';
+import '../../../../shared/providers/providers.dart';
+import '../../../../shared/providers/repository_providers.dart';
 import '../providers/service_provider.dart';
+import '../../../chat/presentation/providers/chat_provider.dart';
 import '../../../reviews/presentation/providers/review_provider.dart';
+import '../../../suppliers/presentation/providers/supplier_provider.dart';
 
 class ServiceDetailScreen extends ConsumerWidget {
   final String serviceId;
@@ -524,130 +529,243 @@ class _ServiceDetailContent extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
-      shape: const RoundedRectangleBorder(
+      backgroundColor: Colors.transparent,
+      builder: (_) => _OrderServiceSheet(service: service),
+    );
+  }
+}
+
+class _OrderServiceSheet extends ConsumerStatefulWidget {
+  final ServiceModel service;
+
+  const _OrderServiceSheet({required this.service});
+
+  @override
+  ConsumerState<_OrderServiceSheet> createState() => _OrderServiceSheetState();
+}
+
+class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
+  final _notesController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final currentUser = ref.read(currentUserProvider).valueOrNull;
+      if (currentUser == null) {
+        _showError('You must be logged in to place an order');
+        return;
+      }
+
+      // Load supplier to get userId and profile info for chat
+      final supplier =
+          await ref.read(supplierProvider(widget.service.supplierId).future);
+      if (supplier == null) {
+        _showError('Supplier not found');
+        return;
+      }
+
+      final notes = _notesController.text.trim();
+
+      // 1. Create order
+      final order = OrderModel(
+        id: '',
+        serviceId: widget.service.id,
+        supplierId: widget.service.supplierId,
+        customerId: currentUser.id,
+        serviceIds: [widget.service.id],
+        serviceNames: [widget.service.title],
+        serviceName: widget.service.title,
+        supplierName: supplier.businessName,
+        customerName: currentUser.name,
+        customerPhone: currentUser.phone,
+        notes: notes.isEmpty ? null : notes,
+        totalPrice: widget.service.price ?? 0,
+        status: OrderStatus.pending,
+        createdAt: DateTime.now(),
+      );
+
+      final orderResult =
+          await ref.read(orderRepositoryProvider).createOrder(order);
+      orderResult.fold(
+        (failure) => throw Exception(failure.message),
+        (_) {},
+      );
+
+      // 2. Create or get chat
+      final chatResult = await ref.read(getOrCreateChatProvider((
+        currentUserId: currentUser.id,
+        otherUserId: supplier.userId,
+        currentUserName: currentUser.name,
+        otherUserName: supplier.businessName,
+        currentUserImage: currentUser.profileImage,
+        otherUserImage: supplier.profileImage,
+      )).future);
+
+      if (chatResult == null) throw Exception('Failed to create chat');
+
+      // 3. Auto-send request details as first message
+      final message = 'Service Request: ${widget.service.title}\n'
+          'Price: KD ${widget.service.price?.toStringAsFixed(2) ?? '0.00'} / ${widget.service.priceUnit ?? 'unit'}'
+          '${notes.isNotEmpty ? '\n\nNotes: $notes' : ''}';
+
+      await ref.read(chatRepositoryProvider).sendMessage(
+            chatId: chatResult.id,
+            senderId: currentUser.id,
+            text: message,
+          );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        context.push('/chats/${chatResult.id}');
+      }
+    } catch (e) {
+      if (mounted) _showError('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = widget.service;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Order Service',
-                style: TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Order Service',
+            style: TextStyle(
+              color: AppColors.textPrimaryDark,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey700,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: service.images.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            service.images.first,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.miscellaneous_services,
+                          color: AppColors.grey500,
+                        ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service.name,
+                        style: const TextStyle(
+                          color: AppColors.textPrimaryDark,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'KD ${service.price?.toStringAsFixed(2) ?? '0.00'} / ${service.priceUnit ?? 'unit'}',
+                        style: const TextStyle(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _notesController,
+            maxLines: 3,
+            style: const TextStyle(color: AppColors.textPrimaryDark),
+            decoration: const InputDecoration(
+              hintText: 'Add notes for the supplier (optional)',
+              hintStyle: TextStyle(color: AppColors.textMutedDark),
+              filled: true,
+              fillColor: AppColors.cardDark,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide.none,
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                disabledBackgroundColor: AppColors.grey600,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppColors.grey700,
-                        borderRadius: BorderRadius.circular(8),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
                       ),
-                      child: service.images.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                service.images.first,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.miscellaneous_services,
-                              color: AppColors.grey500,
-                            ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            service.name,
-                            style: const TextStyle(
-                              color: AppColors.textPrimaryDark,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'KD ${service.price?.toStringAsFixed(2) ?? '0.00'} / ${service.priceUnit ?? 'unit'}',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
+                    )
+                  : const Text(
+                      'Confirm Order',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const TextField(
-                maxLines: 3,
-                style: TextStyle(color: AppColors.textPrimaryDark),
-                decoration: InputDecoration(
-                  hintText: 'Add notes for the supplier (optional)',
-                  hintStyle: TextStyle(color: AppColors.textMutedDark),
-                  filled: true,
-                  fillColor: AppColors.cardDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement order creation
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Order placed successfully!'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Confirm Order',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

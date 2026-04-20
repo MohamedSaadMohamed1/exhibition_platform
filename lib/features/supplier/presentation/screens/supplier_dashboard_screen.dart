@@ -3,11 +3,14 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../router/routes.dart';
 import '../../../../shared/models/business_request_model.dart';
@@ -481,11 +484,13 @@ class _StatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: context.isMobile
+          ? AppDimensions.gridColumnsMobile
+          : AppDimensions.gridColumnsTablet,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
+      mainAxisSpacing: AppDimensions.spacingMd,
+      crossAxisSpacing: AppDimensions.spacingMd,
       childAspectRatio: 1.4,
       children: [
         _StatCard(
@@ -538,11 +543,13 @@ class _StatsGridSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: context.isMobile
+          ? AppDimensions.gridColumnsMobile
+          : AppDimensions.gridColumnsTablet,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
+      mainAxisSpacing: AppDimensions.spacingMd,
+      crossAxisSpacing: AppDimensions.spacingMd,
       childAspectRatio: 1.4,
       children: List.generate(
         4,

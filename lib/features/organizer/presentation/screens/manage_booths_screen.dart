@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../shared/models/booth_model.dart';
@@ -183,11 +185,11 @@ class _ManageBoothsScreenState extends ConsumerState<ManageBoothsScreen> {
   Widget _buildGridView(List<BoothModel> booths, OrganizerBoothsNotifier notifier) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: context.isMobile ? 3 : 4,
         childAspectRatio: 1,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        crossAxisSpacing: 8.w,
+        mainAxisSpacing: 8.h,
       ),
       itemCount: booths.length,
       itemBuilder: (context, index) {

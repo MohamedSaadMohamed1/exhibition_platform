@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../core/extensions/date_extensions.dart';
@@ -166,10 +169,10 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
           ),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 220,
+              height: 220.h,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg.w),
                 itemCount: state.events.take(3).length,
                 itemBuilder: (context, index) {
                   return _FeaturedEventCard(
@@ -198,32 +201,51 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
             ),
           ),
         ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              if (index == state.events.length) {
-                if (state.hasMore) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return null;
-              }
-
-              return _EventListItem(
-                event: state.events[index],
-                onTap: () => context.push(
-                  AppRoutes.eventDetail.replaceFirst(
-                    ':eventId',
-                    state.events[index].id,
+        if (context.isTablet)
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg.w),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: AppDimensions.gridColumnsTablet,
+                crossAxisSpacing: AppDimensions.gridSpacing,
+                mainAxisSpacing: AppDimensions.gridSpacing,
+                childAspectRatio: 0.75,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _EventListItem(
+                  event: state.events[index],
+                  onTap: () => context.push(
+                    AppRoutes.eventDetail.replaceFirst(':eventId', state.events[index].id),
                   ),
                 ),
-              );
-            },
-            childCount: state.events.length + (state.hasMore ? 1 : 0),
+                childCount: state.events.length,
+              ),
+            ),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                if (index == state.events.length) {
+                  if (state.hasMore) {
+                    return Padding(
+                      padding: EdgeInsets.all(AppDimensions.spacingLg.r),
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  return null;
+                }
+
+                return _EventListItem(
+                  event: state.events[index],
+                  onTap: () => context.push(
+                    AppRoutes.eventDetail.replaceFirst(':eventId', state.events[index].id),
+                  ),
+                );
+              },
+              childCount: state.events.length + (state.hasMore ? 1 : 0),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -243,10 +265,10 @@ class _FeaturedEventCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 280,
-        margin: const EdgeInsets.only(right: 16),
+        width: MediaQuery.of(context).size.width >= 600 ? 360.w : 280.w,
+        margin: EdgeInsets.only(right: AppDimensions.spacingLg.w),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           image: event.coverImage != null
               ? DecorationImage(
                   image: NetworkImage(event.coverImage!),
@@ -260,7 +282,7 @@ class _FeaturedEventCard extends StatelessWidget {
             // Gradient overlay
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16.r),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -273,71 +295,53 @@ class _FeaturedEventCard extends StatelessWidget {
             ),
             // Content
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(AppDimensions.spacingLg.r),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (event.category != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
                         event.category!,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: Colors.white,
-                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: AppDimensions.spacingSm.h),
                   Text(
                     event.title,
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Colors.white,
-                      fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      fontSize: 18.sp,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        size: 14,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
+                      Icon(Icons.calendar_today, size: 14.r, color: Colors.white70),
+                      SizedBox(width: 4.w),
                       Text(
                         event.startDate.toShortDate(),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(
-                        Icons.location_on,
-                        size: 14,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 12.w),
+                      Icon(Icons.location_on, size: 14.r, color: Colors.white70),
+                      SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
                           event.location,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -365,20 +369,20 @@ class _EventListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg.w, vertical: 6.h),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12.r),
           child: Row(
             children: [
               // Image
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 child: Container(
-                  width: 80,
-                  height: 80,
+                  width: 80.r,
+                  height: 80.r,
                   color: AppColors.grey200,
                   child: event.coverImage != null
                       ? Image.network(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -42,7 +44,7 @@ class SupplierDetailScreen extends ConsumerWidget {
             slivers: [
               // App Bar with Cover Image
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: context.isTablet ? 280.h : 200.h,
                 pinned: true,
                 backgroundColor: AppColors.surfaceDark,
                 iconTheme: const IconThemeData(color: Colors.white),
@@ -314,7 +316,7 @@ class SupplierDetailScreen extends ConsumerWidget {
                         loading: () => const SizedBox(),
                         error: (_, __) => const SizedBox(),
                       ),
-                      const SizedBox(height: 100),
+                      SizedBox(height: 100.h),
                     ],
                   ),
                 ),

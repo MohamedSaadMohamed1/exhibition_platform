@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -144,7 +147,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               // App Bar with Image
               SliverAppBar(
                 backgroundColor: AppColors.surfaceDark,
-                expandedHeight: 250,
+                expandedHeight: context.isTablet ? 350.h : 250.h,
                 pinned: true,
                 iconTheme: const IconThemeData(color: Colors.white),
                 flexibleSpace: FlexibleSpaceBar(
@@ -520,11 +523,11 @@ class _SuppliersSection extends ConsumerWidget {
             }
 
             return SizedBox(
-              height: 200,
+              height: 200.h,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: suppliers.length > 5 ? 5 : suppliers.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, __) => SizedBox(width: 12.w),
                 itemBuilder: (context, index) {
                   final supplier = suppliers[index];
                   return _SupplierCard(supplier: supplier);
@@ -532,9 +535,9 @@ class _SuppliersSection extends ConsumerWidget {
               ),
             );
           },
-          loading: () => const SizedBox(
-            height: 200,
-            child: Center(child: CircularProgressIndicator()),
+          loading: () => SizedBox(
+            height: 200.h,
+            child: const Center(child: CircularProgressIndicator()),
           ),
           error: (error, _) => Container(
             padding: const EdgeInsets.all(16),
@@ -562,10 +565,10 @@ class _SupplierCard extends StatelessWidget {
         AppRoutes.supplierDetail.replaceFirst(':supplierId', supplier.id),
       ),
       child: Container(
-        width: 160,
+        width: context.isTablet ? 200.w : 160.w,
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: AppColors.grey800),
         ),
         child: Column(
@@ -573,9 +576,9 @@ class _SupplierCard extends StatelessWidget {
           children: [
             // Image
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
               child: Container(
-                height: 90,
+                height: 90.h,
                 width: double.infinity,
                 color: AppColors.grey800,
                 child: supplier.coverImage != null

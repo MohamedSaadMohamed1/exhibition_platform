@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'core/constants/app_constants.dart';
@@ -159,13 +160,20 @@ class _ExhibitionPlatformAppState extends ConsumerState<ExhibitionPlatformApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(goRouterProvider);
 
-    return MaterialApp.router(
-      title: 'Exhibition Platform',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
-      routerConfig: router,
+    return ScreenUtilInit(
+      designSize: const Size(390, 844),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp.router(
+          title: 'Exhibition Platform',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.dark,
+          routerConfig: router,
+        );
+      },
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_dimensions.dart';
 import '../../../../shared/models/event_model.dart';
 
 class EventCard extends StatelessWidget {
@@ -20,20 +22,21 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Event Image - larger ratio (tappable)
+          // Event Image
           GestureDetector(
             onTap: onTap,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: event.images.isNotEmpty
@@ -48,168 +51,164 @@ class EventCard extends StatelessWidget {
               ),
             ),
           ),
-            // Event Details
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    event.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+          // Event Details
+          Padding(
+            padding: EdgeInsets.all(AppDimensions.spacingLg.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  event.title,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.sp,
                   ),
-                  const SizedBox(height: 12),
-                  // Date Row
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        color: AppColors.primary,
-                        size: 16,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: AppDimensions.spacingMd.h),
+                // Date Row
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      color: AppColors.primary,
+                      size: AppDimensions.iconSm.r,
+                    ),
+                    SizedBox(width: AppDimensions.spacingSm.w),
+                    Text(
+                      _formatDateRange(event.startDate, event.endDate),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(0.7),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatDateRange(event.startDate, event.endDate),
-                        style: TextStyle(
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppDimensions.spacingSm.h),
+                // Location Row
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.primary,
+                      size: AppDimensions.iconSm.r,
+                    ),
+                    SizedBox(width: AppDimensions.spacingSm.w),
+                    Expanded(
+                      child: Text(
+                        event.location,
+                        style: textTheme.bodySmall?.copyWith(
                           color: Colors.white.withOpacity(0.7),
-                          fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Location Row
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        color: AppColors.primary,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          event.location,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 13,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Tags Row
-                  if (event.tags.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: event.tags.take(3).map((tag) {
-                        return _EventTag(label: tag);
-                      }).toList(),
                     ),
-                  const SizedBox(height: 12),
-                  // Interested count
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.favorite,
+                  ],
+                ),
+                SizedBox(height: AppDimensions.spacingMd.h),
+                // Tags Row
+                if (event.tags.isNotEmpty)
+                  Wrap(
+                    spacing: AppDimensions.spacingSm.w,
+                    runSpacing: AppDimensions.spacingSm.h,
+                    children: event.tags.take(3).map((tag) {
+                      return _EventTag(label: tag);
+                    }).toList(),
+                  ),
+                SizedBox(height: AppDimensions.spacingMd.h),
+                // Interested count
+                Row(
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      color: AppColors.interested,
+                      size: AppDimensions.iconSm.r,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      '${event.interestedCount} People Interested',
+                      style: textTheme.bodySmall?.copyWith(
                         color: AppColors.interested,
-                        size: 16,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${event.interestedCount} People Interested',
-                        style: TextStyle(
-                          color: AppColors.interested,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Action Buttons Row
-                  Row(
-                    children: [
-                      // Explore & Book Button
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: onTap,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppDimensions.spacingLg.h),
+                // Action Buttons Row
+                Row(
+                  children: [
+                    // Explore & Book Button
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: onTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
                           ),
-                          child: const Text(
-                            'Explore & Book',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Explore & Book',
+                          style: textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      // Bookmark Button
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceDark,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.grey700,
-                            width: 1,
-                          ),
-                        ),
-                        child: IconButton(
-                          onPressed: onBookmarkTap,
-                          icon: Icon(
-                            isBookmarked
-                                ? Icons.bookmark
-                                : Icons.bookmark_border,
-                            color: isBookmarked
-                                ? AppColors.primary
-                                : Colors.white,
-                            size: 24,
-                          ),
-                          padding: const EdgeInsets.all(10),
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
-                          ),
+                    ),
+                    SizedBox(width: AppDimensions.spacingMd.w),
+                    // Bookmark Button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDark,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: AppColors.grey700,
+                          width: 1,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                      child: IconButton(
+                        onPressed: onBookmarkTap,
+                        icon: Icon(
+                          isBookmarked
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color: isBookmarked
+                              ? AppColors.primary
+                              : Colors.white,
+                          size: AppDimensions.iconLg.r,
+                        ),
+                        padding: EdgeInsets.all(10.r),
+                        constraints: BoxConstraints(
+                          minWidth: 48.r,
+                          minHeight: 48.r,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPlaceholderImage() {
     return Container(
       color: AppColors.surfaceDark,
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.image_outlined,
           color: AppColors.textMutedDark,
-          size: 48,
+          size: AppDimensions.iconXxl.r,
         ),
       ),
     );
@@ -242,10 +241,10 @@ class _EventTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: Colors.white.withOpacity(0.2),
           width: 1,
@@ -253,9 +252,8 @@ class _EventTag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: Colors.white.withOpacity(0.8),
-          fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
       ),

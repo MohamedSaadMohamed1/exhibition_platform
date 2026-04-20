@@ -29,7 +29,8 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
   final _notesController = TextEditingController();
 
   String? _selectedEventId;
-  DateTime? _selectedDate;
+  DateTime? _startDateTime;
+  DateTime? _endDateTime;
   bool _isSubmitting = false;
 
   final Set<String> _selectedServiceIds = {};
@@ -44,16 +45,52 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
+  Future<DateTime?> _pickDateTime({DateTime? initial}) async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? now.add(const Duration(days: 1)),
+      initialDate: initial ?? now.add(const Duration(days: 1)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365 * 2)),
     );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initial != null
+          ? TimeOfDay.fromDateTime(initial)
+          : const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickStartDateTime() async {
+    final picked = await _pickDateTime(initial: _startDateTime);
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _startDateTime = picked;
+        if (_endDateTime != null && _endDateTime!.isBefore(picked)) {
+          _endDateTime = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndDateTime() async {
+    final picked = await _pickDateTime(
+        initial: _endDateTime ?? _startDateTime?.add(const Duration(hours: 2)));
+    if (picked != null) {
+      if (_startDateTime != null && picked.isBefore(_startDateTime!)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('End time must be after start time'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      setState(() => _endDateTime = picked);
     }
   }
 
@@ -72,9 +109,13 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
     }
     buffer.writeln();
     buffer.writeln('Total: ${total.toStringAsFixed(2)} KD');
-    if (_selectedDate != null) {
+    if (_startDateTime != null) {
       buffer.writeln(
-          'Date: ${DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate!)}');
+          'Start: ${DateFormat('EEEE, MMMM d, yyyy – h:mm a').format(_startDateTime!)}');
+    }
+    if (_endDateTime != null) {
+      buffer.writeln(
+          'End:   ${DateFormat('EEEE, MMMM d, yyyy – h:mm a').format(_endDateTime!)}');
     }
     if (notes.isNotEmpty) {
       buffer.writeln();
@@ -94,10 +135,19 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
       );
       return;
     }
-    if (_selectedDate == null) {
+    if (_startDateTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a service date'),
+          content: Text('Please select a start date & time'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    if (_endDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an end date & time'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -137,7 +187,8 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
           : '${selectedServices.length} services',
       supplierName: widget.supplier.name,
       customerName: currentUser?.name,
-      serviceDate: _selectedDate,
+      serviceDate: _startDateTime,
+      serviceEndDate: _endDateTime,
       totalPrice: total,
       notes: notes.isEmpty ? null : notes,
       status: OrderStatus.pending,
@@ -297,44 +348,26 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Service Date
+              // Service Date & Time
               Text(
-                'Service Date *',
+                'Service Date & Time *',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _pickDate,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 15),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.grey600),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today,
-                          size: 20, color: AppColors.textSecondaryDark),
-                      const SizedBox(width: 12),
-                      Text(
-                        _selectedDate != null
-                            ? DateFormat('EEEE, MMMM d, yyyy')
-                                .format(_selectedDate!)
-                            : 'Select date',
-                        style: TextStyle(
-                          color: _selectedDate != null
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textSecondaryDark,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              _DateTimePicker(
+                label: 'Start',
+                icon: Icons.play_circle_outline,
+                dateTime: _startDateTime,
+                onTap: _pickStartDateTime,
+              ),
+              const SizedBox(height: 8),
+              _DateTimePicker(
+                label: 'End',
+                icon: Icons.stop_circle_outlined,
+                dateTime: _endDateTime,
+                onTap: _pickEndDateTime,
               ),
               const SizedBox(height: 16),
 
@@ -595,6 +628,64 @@ class _SupplierInfoCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DateTimePicker extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final DateTime? dateTime;
+  final VoidCallback onTap;
+
+  const _DateTimePicker({
+    required this.label,
+    required this.icon,
+    required this.dateTime,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.grey600),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.textSecondaryDark),
+            const SizedBox(width: 12),
+            Text(
+              '$label: ',
+              style: const TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                dateTime != null
+                    ? DateFormat('EEE, MMM d, yyyy – h:mm a').format(dateTime!)
+                    : 'Select date & time',
+                style: TextStyle(
+                  color: dateTime != null
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textSecondaryDark,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(Icons.edit_calendar_outlined,
+                size: 16, color: AppColors.textSecondaryDark),
+          ],
+        ),
       ),
     );
   }

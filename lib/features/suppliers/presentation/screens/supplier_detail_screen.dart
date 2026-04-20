@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
@@ -466,6 +467,8 @@ class _RequestServiceBottomSheetState
   final _formKey = GlobalKey<FormState>();
   final Set<String> _selectedServiceIds = {};
   bool _isLoading = false;
+  DateTime? _startDateTime;
+  DateTime? _endDateTime;
 
   double get _totalPrice => widget.services
       .where((s) => _selectedServiceIds.contains(s.id) && s.price != null)
@@ -475,6 +478,55 @@ class _RequestServiceBottomSheetState
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<DateTime?> _pickDateTime({DateTime? initial}) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 2)),
+    );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initial != null
+          ? TimeOfDay.fromDateTime(initial)
+          : const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickStartDateTime() async {
+    final picked = await _pickDateTime(initial: _startDateTime);
+    if (picked != null) {
+      setState(() {
+        _startDateTime = picked;
+        if (_endDateTime != null && _endDateTime!.isBefore(picked)) {
+          _endDateTime = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndDateTime() async {
+    final picked = await _pickDateTime(
+        initial: _endDateTime ?? _startDateTime?.add(const Duration(hours: 2)));
+    if (picked != null) {
+      if (_startDateTime != null && picked.isBefore(_startDateTime!)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('End time must be after start time'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      setState(() => _endDateTime = picked);
+    }
   }
 
   String _buildRequestMessage(
@@ -492,6 +544,13 @@ class _RequestServiceBottomSheetState
     }
     buffer.writeln();
     buffer.writeln('Total: ${_totalPrice.toStringAsFixed(2)} KD');
+    if (_startDateTime != null) {
+      final fmt = DateFormat('EEE, MMM d, yyyy – h:mm a');
+      buffer.writeln('Start: ${fmt.format(_startDateTime!)}');
+      if (_endDateTime != null) {
+        buffer.writeln('End:   ${fmt.format(_endDateTime!)}');
+      }
+    }
     if (notes.isNotEmpty) {
       buffer.writeln();
       buffer.writeln('Notes: $notes');
@@ -505,6 +564,24 @@ class _RequestServiceBottomSheetState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select at least one service'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    if (_startDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a start date & time'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    if (_endDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an end date & time'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -536,6 +613,8 @@ class _RequestServiceBottomSheetState
         customerPhone: widget.currentUser.phone,
         notes: notes.isEmpty ? null : notes,
         totalPrice: total,
+        serviceDate: _startDateTime,
+        serviceEndDate: _endDateTime,
         status: OrderStatus.pending,
         createdAt: DateTime.now(),
       );
@@ -597,6 +676,7 @@ class _RequestServiceBottomSheetState
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
       child: Form(
         key: _formKey,
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,6 +787,29 @@ class _RequestServiceBottomSheetState
               ],
               const SizedBox(height: 16),
             ],
+            // Date & Time
+            const Text(
+              'Booking Date & Time *',
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _SupplierDateTile(
+              label: 'Start',
+              icon: Icons.play_circle_outline,
+              dateTime: _startDateTime,
+              onTap: _pickStartDateTime,
+            ),
+            const SizedBox(height: 8),
+            _SupplierDateTile(
+              label: 'End',
+              icon: Icons.stop_circle_outlined,
+              dateTime: _endDateTime,
+              onTap: _pickEndDateTime,
+            ),
+            const SizedBox(height: 16),
             // Notes field
             const Text(
               'Message *',
@@ -743,6 +846,65 @@ class _RequestServiceBottomSheetState
               isLoading: _isLoading,
               onPressed: _submit,
             ),
+          ],
+        ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupplierDateTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final DateTime? dateTime;
+  final VoidCallback onTap;
+
+  const _SupplierDateTile({
+    required this.label,
+    required this.icon,
+    required this.dateTime,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.textSecondaryDark),
+            const SizedBox(width: 12),
+            Text(
+              '$label: ',
+              style: const TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                dateTime != null
+                    ? DateFormat('EEE, MMM d, yyyy – h:mm a').format(dateTime!)
+                    : 'Select date & time',
+                style: TextStyle(
+                  color: dateTime != null
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textSecondaryDark,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(Icons.edit_calendar_outlined,
+                size: 16, color: AppColors.textSecondaryDark),
           ],
         ),
       ),

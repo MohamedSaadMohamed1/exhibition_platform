@@ -465,7 +465,6 @@ class _BoothGridItem extends StatelessWidget {
   });
 
   Color get _color {
-    if (isOwn) return AppColors.primary;
     switch (booth.status) {
       case BoothStatus.available:
         return AppColors.boothAvailable;
@@ -514,7 +513,6 @@ class _BoothListItem extends StatelessWidget {
   });
 
   Color get _color {
-    if (isOwn) return AppColors.primary;
     switch (booth.status) {
       case BoothStatus.available:
         return AppColors.boothAvailable;

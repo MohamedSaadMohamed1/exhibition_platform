@@ -83,48 +83,43 @@ class OrganizerAnalyticsNotifier extends FamilyNotifier<AnalyticsState, String> 
     final now = DateTime.now();
     for (final event in events) {
       final data = event.data();
-      final startDate = (data['startDate'] as Timestamp).toDate();
-      final endDate = (data['endDate'] as Timestamp).toDate();
+      final startDate = (data['startDate'] as Timestamp?)?.toDate();
+      final endDate = (data['endDate'] as Timestamp?)?.toDate();
 
-      if (now.isBefore(startDate)) {
-        upcomingEvents++;
-      } else if (now.isAfter(endDate)) {
-        pastEvents++;
-      } else {
-        activeEvents++;
+      if (startDate != null && endDate != null) {
+        if (now.isBefore(startDate)) {
+          upcomingEvents++;
+        } else if (now.isAfter(endDate)) {
+          pastEvents++;
+        } else {
+          activeEvents++;
+        }
       }
 
       totalInterestedUsers += (data['interestedCount'] as int?) ?? 0;
     }
 
-    // Fetch bookings
+    // Fetch bookings directly by organizerId
     int totalBookings = 0;
     double totalRevenue = 0.0;
     Map<String, int> bookingsByStatus = {};
 
-    if (eventIds.isNotEmpty) {
-      // Firestore limits whereIn to 10 items, so we need to batch
-      for (var i = 0; i < eventIds.length; i += 10) {
-        final batchIds = eventIds.sublist(
-          i,
-          i + 10 > eventIds.length ? eventIds.length : i + 10,
-        );
+    final bookingsQuery = await _firestore
+        .collection('booking_requests')
+        .where('organizerId', isEqualTo: organizerId)
+        .get();
 
-        final bookingsQuery = await _firestore
-            .collection('bookings')
-            .where('eventId', whereIn: batchIds)
-            .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(dateRange.start))
-            .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(dateRange.end))
-            .get();
+    for (final booking in bookingsQuery.docs) {
+      final data = booking.data();
+      final status = data['status'] as String? ?? 'unknown';
+      bookingsByStatus[status] = (bookingsByStatus[status] ?? 0) + 1;
 
-        for (final booking in bookingsQuery.docs) {
-          final data = booking.data();
-          totalBookings++;
-          totalRevenue += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
+      if (status != 'cancelled' && status != 'rejected') {
+        totalBookings++;
+      }
 
-          final status = data['status'] as String? ?? 'unknown';
-          bookingsByStatus[status] = (bookingsByStatus[status] ?? 0) + 1;
-        }
+      if (status == 'confirmed' || status == 'approved') {
+        totalRevenue += (data['totalPrice'] as num?)?.toDouble() ?? 0.0;
       }
     }
 
@@ -170,14 +165,17 @@ class OrganizerAnalyticsNotifier extends FamilyNotifier<AnalyticsState, String> 
   }
 
   Future<int> _getBookedBoothsCount(String eventId) async {
-    final query = await _firestore
-        .collection('bookings')
-        .where('eventId', isEqualTo: eventId)
-        .where('status', isEqualTo: 'confirmed')
-        .count()
-        .get();
-
-    return query.count ?? 0;
+    try {
+      final query = await _firestore
+          .collection('booking_requests')
+          .where('eventId', isEqualTo: eventId)
+          .where('status', isEqualTo: 'confirmed')
+          .count()
+          .get();
+      return query.count ?? 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<List<MonthlyStats>> _getMonthlyStats(
@@ -211,8 +209,7 @@ class OrganizerAnalyticsNotifier extends FamilyNotifier<AnalyticsState, String> 
     final eventsQuery = await _firestore
         .collection('events')
         .where('organizerId', isEqualTo: organizerId)
-        .orderBy('interestedCount', descending: true)
-        .limit(limit)
+        .limit(20)
         .get();
 
     final topEvents = <EventAnalytics>[];
@@ -220,23 +217,27 @@ class OrganizerAnalyticsNotifier extends FamilyNotifier<AnalyticsState, String> 
     for (final event in eventsQuery.docs) {
       final data = event.data();
 
-      // Get bookings count
-      final bookingsCount = await _firestore
-          .collection('bookings')
-          .where('eventId', isEqualTo: event.id)
-          .count()
-          .get();
+      int bookingsCountVal = 0;
+      try {
+        final bookingsCount = await _firestore
+            .collection('booking_requests')
+            .where('eventId', isEqualTo: event.id)
+            .count()
+            .get();
+        bookingsCountVal = bookingsCount.count ?? 0;
+      } catch (_) {}
 
       topEvents.add(EventAnalytics(
         eventId: event.id,
         eventTitle: data['title'] as String? ?? 'Unknown',
         interestedCount: (data['interestedCount'] as int?) ?? 0,
-        totalBookings: bookingsCount.count ?? 0,
+        totalBookings: bookingsCountVal,
         totalBooths: (data['boothCount'] as int?) ?? 0,
       ));
     }
 
-    return topEvents;
+    topEvents.sort((a, b) => b.interestedCount.compareTo(a.interestedCount));
+    return topEvents.take(limit).toList();
   }
 
   DateTimeRange _getDateRange(AnalyticsDateRange range) {
@@ -316,7 +317,7 @@ final eventAnalyticsProvider =
 
   // Get bookings
   final bookingsQuery = await firestore
-      .collection('bookings')
+      .collection('booking_requests')
       .where('eventId', isEqualTo: eventId)
       .get();
 
@@ -328,7 +329,7 @@ final eventAnalyticsProvider =
   for (final booking in bookingsQuery.docs) {
     final bookingData = booking.data();
     final status = bookingData['status'] as String?;
-    final amount = (bookingData['totalAmount'] as num?)?.toDouble() ?? 0.0;
+    final amount = (bookingData['totalPrice'] as num?)?.toDouble() ?? 0.0;
 
     switch (status) {
       case 'confirmed':

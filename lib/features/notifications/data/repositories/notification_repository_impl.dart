@@ -53,7 +53,14 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
       final snapshot = await query.limit(limit).get();
       final notifications = snapshot.docs
-          .map((doc) => NotificationModel.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return NotificationModel.fromFirestore(doc);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<NotificationModel>()
           .toList();
 
       return Right(notifications);
@@ -78,7 +85,14 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
     return query.limit(limit).snapshots().map((snapshot) {
       return snapshot.docs
-          .map((doc) => NotificationModel.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return NotificationModel.fromFirestore(doc);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<NotificationModel>()
           .toList();
     });
   }

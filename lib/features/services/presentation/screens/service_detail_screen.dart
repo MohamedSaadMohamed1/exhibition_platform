@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
@@ -547,11 +548,57 @@ class _OrderServiceSheet extends ConsumerStatefulWidget {
 class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
   final _notesController = TextEditingController();
   bool _isLoading = false;
+  DateTime? _startDateTime;
+  DateTime? _endDateTime;
 
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<DateTime?> _pickDateTime({DateTime? initial}) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 2)),
+    );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initial != null
+          ? TimeOfDay.fromDateTime(initial)
+          : const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickStartDateTime() async {
+    final picked = await _pickDateTime(initial: _startDateTime);
+    if (picked != null) {
+      setState(() {
+        _startDateTime = picked;
+        if (_endDateTime != null && _endDateTime!.isBefore(picked)) {
+          _endDateTime = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndDateTime() async {
+    final picked = await _pickDateTime(
+        initial: _endDateTime ?? _startDateTime?.add(const Duration(hours: 2)));
+    if (picked != null) {
+      if (_startDateTime != null && picked.isBefore(_startDateTime!)) {
+        if (!mounted) return;
+        _showError('End time must be after start time');
+        return;
+      }
+      setState(() => _endDateTime = picked);
+    }
   }
 
   Future<void> _submit() async {
@@ -572,6 +619,15 @@ class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
         return;
       }
 
+      if (_startDateTime == null) {
+        _showError('Please select a start date & time');
+        return;
+      }
+      if (_endDateTime == null) {
+        _showError('Please select an end date & time');
+        return;
+      }
+
       final notes = _notesController.text.trim();
 
       // 1. Create order
@@ -588,6 +644,8 @@ class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
         customerPhone: currentUser.phone,
         notes: notes.isEmpty ? null : notes,
         totalPrice: widget.service.price ?? 0,
+        serviceDate: _startDateTime,
+        serviceEndDate: _endDateTime,
         status: OrderStatus.pending,
         createdAt: DateTime.now(),
       );
@@ -612,8 +670,11 @@ class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
       if (chatResult == null) throw Exception('Failed to create chat');
 
       // 3. Auto-send request details as first message
-      final message = 'Service Request: ${widget.service.title}\n'
-          'Price: KD ${widget.service.price?.toStringAsFixed(2) ?? '0.00'} / ${widget.service.priceUnit ?? 'unit'}'
+      final fmt = DateFormat('EEE, MMM d, yyyy – h:mm a');
+      final message = '📋 Service Request: ${widget.service.title}\n'
+          'Price: KD ${widget.service.price?.toStringAsFixed(2) ?? '0.00'} / ${widget.service.priceUnit ?? 'unit'}\n'
+          'Start: ${fmt.format(_startDateTime!)}\n'
+          'End:   ${fmt.format(_endDateTime!)}'
           '${notes.isNotEmpty ? '\n\nNotes: $notes' : ''}';
 
       await ref.read(chatRepositoryProvider).sendMessage(
@@ -654,7 +715,8 @@ class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
         20,
         20 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -718,6 +780,29 @@ class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
             ),
           ),
           const SizedBox(height: 16),
+          const Text(
+            'Booking Date & Time *',
+            style: TextStyle(
+              color: AppColors.textPrimaryDark,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _ServiceDateTile(
+            label: 'Start',
+            icon: Icons.play_circle_outline,
+            dateTime: _startDateTime,
+            onTap: _pickStartDateTime,
+          ),
+          const SizedBox(height: 8),
+          _ServiceDateTile(
+            label: 'End',
+            icon: Icons.stop_circle_outlined,
+            dateTime: _endDateTime,
+            onTap: _pickEndDateTime,
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _notesController,
             maxLines: 3,
@@ -766,6 +851,65 @@ class _OrderServiceSheetState extends ConsumerState<_OrderServiceSheet> {
             ),
           ),
         ],
+      ),
+      ),
+    );
+  }
+}
+
+class _ServiceDateTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final DateTime? dateTime;
+  final VoidCallback onTap;
+
+  const _ServiceDateTile({
+    required this.label,
+    required this.icon,
+    required this.dateTime,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.textMutedDark),
+            const SizedBox(width: 12),
+            Text(
+              '$label: ',
+              style: const TextStyle(
+                color: AppColors.textMutedDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                dateTime != null
+                    ? DateFormat('EEE, MMM d, yyyy – h:mm a').format(dateTime!)
+                    : 'Select date & time',
+                style: TextStyle(
+                  color: dateTime != null
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textMutedDark,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(Icons.edit_calendar_outlined,
+                size: 16, color: AppColors.textMutedDark),
+          ],
+        ),
       ),
     );
   }

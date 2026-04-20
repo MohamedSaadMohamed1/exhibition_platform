@@ -197,6 +197,35 @@ class BookingRepositoryImpl implements BookingRepository {
           .map((doc) => BookingRequest.fromFirestore(doc))
           .toList();
 
+      // Enrich with exhibitor names for bookings missing them
+      final missingNameIds = bookings
+          .where((b) => (b.exhibitorName == null || b.exhibitorName!.isEmpty) && b.exhibitorId.isNotEmpty)
+          .map((b) => b.exhibitorId)
+          .toSet()
+          .toList();
+
+      if (missingNameIds.isNotEmpty) {
+        final userNames = <String, String>{};
+        for (var i = 0; i < missingNameIds.length; i += 10) {
+          final batch = missingNameIds.sublist(i, (i + 10).clamp(0, missingNameIds.length));
+          final usersSnap = await _firestore
+              .collection('users')
+              .where(FieldPath.documentId, whereIn: batch)
+              .get();
+          for (final doc in usersSnap.docs) {
+            final name = doc.data()['name'] as String? ?? doc.data()['displayName'] as String?;
+            if (name != null && name.isNotEmpty) userNames[doc.id] = name;
+          }
+        }
+
+        return Right(bookings.map((b) {
+          if ((b.exhibitorName == null || b.exhibitorName!.isEmpty) && userNames.containsKey(b.exhibitorId)) {
+            return b.copyWith(exhibitorName: userNames[b.exhibitorId]);
+          }
+          return b;
+        }).toList());
+      }
+
       return Right(bookings);
     } catch (e) {
       return Left(e.toFailure());
@@ -503,7 +532,60 @@ class BookingRepositoryImpl implements BookingRepository {
           .map((doc) => BookingRequest.fromFirestore(doc))
           .toList();
 
-      return Right(bookings);
+      // Collect IDs needing enrichment
+      final missingEventIds = bookings
+          .where((b) => (b.eventTitle == null || b.eventTitle!.isEmpty) && b.eventId.isNotEmpty)
+          .map((b) => b.eventId)
+          .toSet()
+          .toList();
+
+      final missingUserIds = bookings
+          .where((b) => (b.exhibitorName == null || b.exhibitorName!.isEmpty) && b.exhibitorId.isNotEmpty)
+          .map((b) => b.exhibitorId)
+          .toSet()
+          .toList();
+
+      final eventTitles = <String, String>{};
+      final userNames = <String, String>{};
+
+      // Fetch event titles
+      for (var i = 0; i < missingEventIds.length; i += 10) {
+        final batch = missingEventIds.sublist(i, (i + 10).clamp(0, missingEventIds.length));
+        final snap = await _firestore
+            .collection('events')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (final doc in snap.docs) {
+          final title = doc.data()['title'] as String?;
+          if (title != null && title.isNotEmpty) eventTitles[doc.id] = title;
+        }
+      }
+
+      // Fetch exhibitor names
+      for (var i = 0; i < missingUserIds.length; i += 10) {
+        final batch = missingUserIds.sublist(i, (i + 10).clamp(0, missingUserIds.length));
+        final snap = await _firestore
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (final doc in snap.docs) {
+          final name = doc.data()['name'] as String? ?? doc.data()['displayName'] as String?;
+          if (name != null && name.isNotEmpty) userNames[doc.id] = name;
+        }
+      }
+
+      final enriched = bookings.map((b) {
+        BookingRequest result = b;
+        if ((b.eventTitle == null || b.eventTitle!.isEmpty) && eventTitles.containsKey(b.eventId)) {
+          result = result.copyWith(eventTitle: eventTitles[b.eventId]);
+        }
+        if ((b.exhibitorName == null || b.exhibitorName!.isEmpty) && userNames.containsKey(b.exhibitorId)) {
+          result = result.copyWith(exhibitorName: userNames[b.exhibitorId]);
+        }
+        return result;
+      }).toList();
+
+      return Right(enriched);
     } catch (e) {
       return Left(e.toFailure());
     }

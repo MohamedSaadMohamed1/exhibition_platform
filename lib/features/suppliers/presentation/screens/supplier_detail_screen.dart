@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
@@ -77,10 +79,14 @@ class SupplierDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                actions: [
+                  actions: [
                   IconButton(
                     icon: const Icon(Icons.share),
-                    onPressed: () {},
+                    onPressed: () {
+                      final buffer = StringBuffer('Check out ${supplier.businessName}!');
+                      if (supplier.description.isNotEmpty) buffer.write('\n${supplier.description}');
+                      Share.share(buffer.toString());
+                    },
                   ),
                 ],
               ),
@@ -251,7 +257,9 @@ class SupplierDetailScreen extends ConsumerWidget {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () => context.push(
+                              '${AppRoutes.supplierServicesPath(supplierId)}?name=${Uri.encodeComponent(supplier.businessName)}',
+                            ),
                             child: const Text('See All'),
                           ),
                         ],
@@ -306,11 +314,27 @@ class SupplierDetailScreen extends ConsumerWidget {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () => context.pushNamed(
+                              AppRoutes.allReviews,
+                              extra: {
+                                'targetId': supplierId,
+                                'targetName': supplier.businessName,
+                                'targetImage': supplier.profileImage,
+                                'reviewType': ReviewType.supplier,
+                              },
+                            ),
                             child: const Text('See All'),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      if (currentUser != null && currentUser.id != supplier.userId)
+                        _SupplierRateButton(
+                          supplierId: supplierId,
+                          supplierName: supplier.businessName,
+                          supplierImage: supplier.profileImage,
+                          currentUserId: currentUser.id,
+                        ),
                       const SizedBox(height: 8),
                       reviewStatsAsync.when(
                         data: (stats) => _ReviewStatsCard(stats: stats),
@@ -466,9 +490,9 @@ class _RequestServiceBottomSheetState
   final _notesController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final Set<String> _selectedServiceIds = {};
+  final Map<String, DateTime> _serviceStartTimes = {};
+  final Map<String, DateTime> _serviceEndTimes = {};
   bool _isLoading = false;
-  DateTime? _startDateTime;
-  DateTime? _endDateTime;
 
   double get _totalPrice => widget.services
       .where((s) => _selectedServiceIds.contains(s.id) && s.price != null)
@@ -499,38 +523,39 @@ class _RequestServiceBottomSheetState
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
-  Future<void> _pickStartDateTime() async {
-    final picked = await _pickDateTime(initial: _startDateTime);
+  Future<void> _pickServiceStart(String serviceId) async {
+    final picked = await _pickDateTime(initial: _serviceStartTimes[serviceId]);
     if (picked != null) {
       setState(() {
-        _startDateTime = picked;
-        if (_endDateTime != null && _endDateTime!.isBefore(picked)) {
-          _endDateTime = null;
+        _serviceStartTimes[serviceId] = picked;
+        if (_serviceEndTimes[serviceId]?.isBefore(picked) ?? false) {
+          _serviceEndTimes.remove(serviceId);
         }
       });
     }
   }
 
-  Future<void> _pickEndDateTime() async {
+  Future<void> _pickServiceEnd(String serviceId) async {
+    final start = _serviceStartTimes[serviceId];
     final picked = await _pickDateTime(
-        initial: _endDateTime ?? _startDateTime?.add(const Duration(hours: 2)));
-    if (picked != null) {
-      if (_startDateTime != null && picked.isBefore(_startDateTime!)) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('End time must be after start time'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
-      setState(() => _endDateTime = picked);
+        initial: _serviceEndTimes[serviceId] ?? start?.add(const Duration(hours: 2)));
+    if (picked == null) return;
+    if (start != null && picked.isBefore(start)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('End time must be after start time'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
     }
+    setState(() => _serviceEndTimes[serviceId] = picked);
   }
 
   String _buildRequestMessage(
       List<ServiceModel> selectedServices, String notes) {
+    final fmt = DateFormat('EEE, MMM d, yyyy – h:mm a');
     final buffer = StringBuffer();
     buffer.writeln('🔧 Service Request');
     buffer.writeln();
@@ -541,16 +566,13 @@ class _RequestServiceBottomSheetState
       } else {
         buffer.writeln('  • ${s.title} — Contact for price');
       }
+      final start = _serviceStartTimes[s.id];
+      final end = _serviceEndTimes[s.id];
+      if (start != null) buffer.writeln('    Start: ${fmt.format(start)}');
+      if (end != null)   buffer.writeln('    End:   ${fmt.format(end)}');
     }
     buffer.writeln();
     buffer.writeln('Total: ${_totalPrice.toStringAsFixed(2)} KD');
-    if (_startDateTime != null) {
-      final fmt = DateFormat('EEE, MMM d, yyyy – h:mm a');
-      buffer.writeln('Start: ${fmt.format(_startDateTime!)}');
-      if (_endDateTime != null) {
-        buffer.writeln('End:   ${fmt.format(_endDateTime!)}');
-      }
-    }
     if (notes.isNotEmpty) {
       buffer.writeln();
       buffer.writeln('Notes: $notes');
@@ -569,23 +591,16 @@ class _RequestServiceBottomSheetState
       );
       return;
     }
-    if (_startDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a start date & time'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-    if (_endDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an end date & time'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
+    for (final id in _selectedServiceIds) {
+      if (!_serviceStartTimes.containsKey(id) || !_serviceEndTimes.containsKey(id)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please set start & end time for all selected services'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
@@ -613,19 +628,35 @@ class _RequestServiceBottomSheetState
         customerPhone: widget.currentUser.phone,
         notes: notes.isEmpty ? null : notes,
         totalPrice: total,
-        serviceDate: _startDateTime,
-        serviceEndDate: _endDateTime,
+        serviceDate: _serviceStartTimes[selectedServices.first.id],
+        serviceEndDate: _serviceEndTimes[selectedServices.first.id],
         status: OrderStatus.pending,
         createdAt: DateTime.now(),
       );
 
+      String? createdOrderId;
       final orderResult =
           await ref.read(orderRepositoryProvider).createOrder(order);
 
       orderResult.fold(
         (failure) => throw Exception(failure.message),
-        (_) {},
+        (created) { createdOrderId = created.id; },
       );
+
+      // Save per-service date ranges as extra Firestore field
+      if (createdOrderId != null) {
+        final ranges = {
+          for (final s in selectedServices)
+            s.id: {
+              'start': _serviceStartTimes[s.id]!.toIso8601String(),
+              'end': _serviceEndTimes[s.id]!.toIso8601String(),
+            }
+        };
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(createdOrderId)
+            .update({'serviceDateRanges': ranges});
+      }
 
       // 2. Create or get chat
       final chatResult = await ref.read(getOrCreateChatProvider((
@@ -721,35 +752,63 @@ class _RequestServiceBottomSheetState
                 child: Column(
                   children: widget.services.map((service) {
                     final isChecked = _selectedServiceIds.contains(service.id);
-                    return CheckboxListTile(
-                      value: isChecked,
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedServiceIds.add(service.id);
-                          } else {
-                            _selectedServiceIds.remove(service.id);
-                          }
-                        });
-                      },
-                      title: Text(
-                        service.title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimaryDark,
-                          fontSize: 14,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CheckboxListTile(
+                          value: isChecked,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedServiceIds.add(service.id);
+                              } else {
+                                _selectedServiceIds.remove(service.id);
+                                _serviceStartTimes.remove(service.id);
+                                _serviceEndTimes.remove(service.id);
+                              }
+                            });
+                          },
+                          title: Text(
+                            service.title,
+                            style: const TextStyle(
+                              color: AppColors.textPrimaryDark,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            service.formattedPrice,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          activeColor: AppColors.primary,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
                         ),
-                      ),
-                      subtitle: Text(
-                        service.formattedPrice,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      activeColor: AppColors.primary,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
+                        if (isChecked)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16, right: 8, bottom: 8),
+                            child: Column(
+                              children: [
+                                _SupplierDateTile(
+                                  label: 'Start',
+                                  icon: Icons.play_circle_outline,
+                                  dateTime: _serviceStartTimes[service.id],
+                                  onTap: () => _pickServiceStart(service.id),
+                                ),
+                                const SizedBox(height: 6),
+                                _SupplierDateTile(
+                                  label: 'End',
+                                  icon: Icons.stop_circle_outlined,
+                                  dateTime: _serviceEndTimes[service.id],
+                                  onTap: () => _pickServiceEnd(service.id),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     );
                   }).toList(),
                 ),
@@ -787,29 +846,6 @@ class _RequestServiceBottomSheetState
               ],
               const SizedBox(height: 16),
             ],
-            // Date & Time
-            const Text(
-              'Booking Date & Time *',
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _SupplierDateTile(
-              label: 'Start',
-              icon: Icons.play_circle_outline,
-              dateTime: _startDateTime,
-              onTap: _pickStartDateTime,
-            ),
-            const SizedBox(height: 8),
-            _SupplierDateTile(
-              label: 'End',
-              icon: Icons.stop_circle_outlined,
-              dateTime: _endDateTime,
-              onTap: _pickEndDateTime,
-            ),
-            const SizedBox(height: 16),
             // Notes field
             const Text(
               'Message *',
@@ -1172,6 +1208,72 @@ class _RatingBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SupplierRateButton extends ConsumerWidget {
+  final String supplierId;
+  final String supplierName;
+  final String? supplierImage;
+  final String currentUserId;
+
+  const _SupplierRateButton({
+    required this.supplierId,
+    required this.supplierName,
+    this.supplierImage,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasReviewedAsync = ref.watch(
+      hasUserReviewedProvider((userId: currentUserId, targetId: supplierId)),
+    );
+
+    return hasReviewedAsync.when(
+      data: (reviewed) => reviewed
+          ? Row(
+              children: const [
+                Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'Supplier Reviewed',
+                  style: TextStyle(color: AppColors.success, fontSize: 13),
+                ),
+              ],
+            )
+          : SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.star_outline, size: 18),
+                label: const Text('Rate Supplier'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.warning,
+                  side: const BorderSide(color: AppColors.warning),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () async {
+                  final result = await context.pushNamed(
+                    AppRoutes.writeReview,
+                    extra: {
+                      'targetId': supplierId,
+                      'targetName': supplierName,
+                      'targetImage': supplierImage,
+                      'reviewType': ReviewType.supplier,
+                    },
+                  );
+                  if (result == true) {
+                    ref.invalidate(hasUserReviewedProvider);
+                    ref.invalidate(reviewStatsProvider);
+                  }
+                },
+              ),
+            ),
+      loading: () => const SizedBox(height: 36),
+      error: (_, __) => const SizedBox(),
     );
   }
 }

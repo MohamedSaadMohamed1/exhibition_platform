@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
@@ -14,6 +18,7 @@ import '../../../suppliers/presentation/providers/supplier_provider.dart';
 import '../../../jobs/presentation/providers/job_provider.dart';
 import '../../../../shared/providers/providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/event_card.dart';
 import '../widgets/home_header.dart';
@@ -1242,7 +1247,12 @@ class _JobApplicationFormSheetState
   final _phoneController = TextEditingController();
   final _positionController = TextEditingController();
   final _commentController = TextEditingController();
+  String _fullPhoneNumber = '';
   bool _isSubmitting = false;
+  String? _cvFileName;
+  Uint8List? _cvBytes;
+  String? _cvFilePath;
+  bool _isPickingCv = false;
 
   @override
   void dispose() {
@@ -1254,8 +1264,53 @@ class _JobApplicationFormSheetState
     super.dispose();
   }
 
+  Future<void> _pickCv() async {
+    setState(() => _isPickingCv = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx'],
+        withData: kIsWeb,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _cvFileName = result.files.single.name;
+          _cvBytes = kIsWeb ? result.files.single.bytes : null;
+          _cvFilePath = kIsWeb ? null : result.files.single.path;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingCv = false);
+    }
+  }
+
+  Future<String?> _uploadCv(String userId) async {
+    if (_cvFileName == null) return null;
+    final ext = _cvFileName!.split('.').last;
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child('cv_uploads/$userId/$ts.$ext');
+    if (kIsWeb && _cvBytes != null) {
+      await storageRef.putData(_cvBytes!);
+    } else if (!kIsWeb && _cvFilePath != null) {
+      await storageRef.putFile(File(_cvFilePath!));
+    }
+    return await storageRef.getDownloadURL();
+  }
+
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_cvFileName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please upload your CV / Resume.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
@@ -1271,6 +1326,11 @@ class _JobApplicationFormSheetState
     setState(() => _isSubmitting = true);
 
     try {
+      String? resumeUrl;
+      if (_cvFileName != null) {
+        resumeUrl = await _uploadCv(userId);
+      }
+
       final firestore = FirebaseFirestore.instance;
       final docRef = firestore.collection('job_applications').doc();
 
@@ -1279,12 +1339,13 @@ class _JobApplicationFormSheetState
         'userId': userId,
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
+        'phone': _fullPhoneNumber.isNotEmpty ? _fullPhoneNumber : _phoneController.text.trim(),
         'position': _positionController.text.trim(),
         'coverLetter': _commentController.text.trim(),
         'status': 'pending',
         'source': 'event_jobs_tab',
         if (widget.jobId != null) 'jobId': widget.jobId,
+        if (resumeUrl != null) 'resumeUrl': resumeUrl,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -1418,14 +1479,36 @@ class _JobApplicationFormSheetState
                     ),
                     const SizedBox(height: 16),
                     // Phone
-                    _buildTextField(
+                    IntlPhoneField(
                       controller: _phoneController,
-                      label: 'Phone Number',
-                      hint: 'Enter your phone number',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
+                      initialCountryCode: 'KW',
+                      style: const TextStyle(color: AppColors.textPrimaryDark),
+                      dropdownTextStyle: const TextStyle(color: AppColors.textPrimaryDark),
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        hintText: 'Enter your phone number',
+                        hintStyle: const TextStyle(color: AppColors.textMutedDark),
+                        labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
+                        filled: true,
+                        fillColor: AppColors.cardDark,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.primary),
+                        ),
+                      ),
+                      onChanged: (phone) {
+                        _fullPhoneNumber = phone.completeNumber;
+                      },
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.number.isEmpty) {
                           return 'Please enter your phone number';
                         }
                         return null;
@@ -1454,6 +1537,9 @@ class _JobApplicationFormSheetState
                       icon: Icons.message_outlined,
                       maxLines: 5,
                     ),
+                    const SizedBox(height: 16),
+                    // CV Upload
+                    _buildCvUploadSection(),
                     const SizedBox(height: 32),
                     // Submit Button
                     SizedBox(
@@ -1571,6 +1657,98 @@ class _JobApplicationFormSheetState
             ),
           ),
           validator: validator,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCvUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'CV / Resume *',
+          style: TextStyle(
+            color: AppColors.textPrimaryDark,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _isPickingCv ? null : _pickCv,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _cvFileName != null
+                    ? AppColors.primary
+                    : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            child: _isPickingCv
+                ? const Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Selecting file…',
+                        style: TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  )
+                : _cvFileName != null
+                    ? Row(
+                        children: [
+                          const Icon(Icons.insert_drive_file_outlined,
+                              color: AppColors.primary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _cvFileName!,
+                              style: const TextStyle(
+                                color: AppColors.textPrimaryDark,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => setState(() {
+                              _cvFileName = null;
+                              _cvBytes = null;
+                              _cvFilePath = null;
+                            }),
+                            child: const Icon(Icons.close,
+                                color: AppColors.textSecondaryDark, size: 18),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          const Icon(Icons.upload_file_outlined,
+                              color: AppColors.textSecondaryDark, size: 20),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Upload CV (PDF, DOC, DOCX)',
+                            style: TextStyle(
+                              color: AppColors.textMutedDark,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+          ),
         ),
       ],
     );

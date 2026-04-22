@@ -545,7 +545,7 @@ class _CreateExhibitionScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Start Date',
+                          'Start Date & Time',
                           style: TextStyle(
                             color: AppColors.textPrimaryDark,
                             fontSize: 16,
@@ -572,8 +572,29 @@ class _CreateExhibitionScreenState
                                 );
                               },
                             );
-                            if (date != null) {
-                              setState(() => _startDate = date);
+                            if (date != null && mounted) {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.fromDateTime(
+                                    _startDate ?? DateTime.now()),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: ThemeData.dark().copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: AppColors.organizerColor,
+                                        surface: AppColors.surfaceDark,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (time != null) {
+                                setState(() => _startDate = DateTime(
+                                  date.year, date.month, date.day,
+                                  time.hour, time.minute,
+                                ));
+                              }
                             }
                           },
                           child: Container(
@@ -590,8 +611,8 @@ class _CreateExhibitionScreenState
                                 const SizedBox(width: 12),
                                 Text(
                                   _startDate == null
-                                      ? 'Select date'
-                                      : '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}',
+                                      ? 'Select date & time'
+                                      : '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}  ${_startDate!.hour.toString().padLeft(2, '0')}:${_startDate!.minute.toString().padLeft(2, '0')}',
                                   style: TextStyle(
                                     color: _startDate == null
                                         ? AppColors.grey600
@@ -611,7 +632,7 @@ class _CreateExhibitionScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'End Date',
+                          'End Date & Time',
                           style: TextStyle(
                             color: AppColors.textPrimaryDark,
                             fontSize: 16,
@@ -638,8 +659,29 @@ class _CreateExhibitionScreenState
                                 );
                               },
                             );
-                            if (date != null) {
-                              setState(() => _endDate = date);
+                            if (date != null && mounted) {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.fromDateTime(
+                                    _endDate ?? DateTime.now()),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: ThemeData.dark().copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: AppColors.organizerColor,
+                                        surface: AppColors.surfaceDark,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (time != null) {
+                                setState(() => _endDate = DateTime(
+                                  date.year, date.month, date.day,
+                                  time.hour, time.minute,
+                                ));
+                              }
                             }
                           },
                           child: Container(
@@ -656,8 +698,8 @@ class _CreateExhibitionScreenState
                                 const SizedBox(width: 12),
                                 Text(
                                   _endDate == null
-                                      ? 'Select date'
-                                      : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}',
+                                      ? 'Select date & time'
+                                      : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}  ${_endDate!.hour.toString().padLeft(2, '0')}:${_endDate!.minute.toString().padLeft(2, '0')}',
                                   style: TextStyle(
                                     color: _endDate == null
                                         ? AppColors.grey600

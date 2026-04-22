@@ -170,14 +170,7 @@ class _JobDetailContent extends StatelessWidget {
                 ),
               ),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.share),
-                onPressed: () {
-                  // TODO: Implement share
-                },
-              ),
-            ],
+            actions: [],
           ),
 
           // Content

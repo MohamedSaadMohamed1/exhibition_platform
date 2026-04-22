@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../core/extensions/date_extensions.dart';
 import '../../../../shared/models/booking_model.dart';
+import '../../../../shared/models/review_model.dart';
 import '../../../../shared/providers/providers.dart';
+import '../../../../router/routes.dart';
+import '../../../reviews/presentation/providers/review_provider.dart';
 
 // Provider for exhibitor bookings
 final myBookingsProvider = StreamProvider<List<BookingRequest>>((ref) {
@@ -53,7 +57,7 @@ class MyBookingsScreen extends ConsumerWidget {
   }
 }
 
-class _BookingCard extends StatelessWidget {
+class _BookingCard extends ConsumerWidget {
   final BookingRequest booking;
 
   const _BookingCard({required this.booking});
@@ -89,7 +93,8 @@ class _BookingCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -212,6 +217,14 @@ class _BookingCard extends StatelessWidget {
                 ),
               ),
             ],
+            if (currentUser != null) ...[
+              const SizedBox(height: 12),
+              _RateEventButton(
+                eventId: booking.eventId,
+                eventTitle: booking.eventTitle ?? 'Event',
+                currentUserId: currentUser.id,
+              ),
+            ],
             if (booking.isRejected && booking.rejectionReason != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -241,6 +254,73 @@ class _BookingCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RateEventButton extends ConsumerWidget {
+  final String eventId;
+  final String eventTitle;
+  final String currentUserId;
+
+  const _RateEventButton({
+    required this.eventId,
+    required this.eventTitle,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasReviewedAsync = ref.watch(
+      hasUserReviewedProvider((userId: currentUserId, targetId: eventId)),
+    );
+
+    return hasReviewedAsync.when(
+      data: (reviewed) => reviewed
+          ? Row(
+              children: const [
+                Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'Event Reviewed',
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            )
+          : SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.star_outline, size: 18),
+                label: const Text('Rate Event'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.warning,
+                  side: const BorderSide(color: AppColors.warning),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () async {
+                  final result = await context.pushNamed(
+                    AppRoutes.writeReview,
+                    extra: {
+                      'targetId': eventId,
+                      'targetName': eventTitle,
+                      'targetImage': null,
+                      'reviewType': ReviewType.event,
+                    },
+                  );
+                  if (result == true) {
+                    ref.invalidate(hasUserReviewedProvider);
+                  }
+                },
+              ),
+            ),
+      loading: () => const SizedBox(height: 36),
+      error: (_, __) => const SizedBox(),
     );
   }
 }

@@ -29,11 +29,11 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
   final _notesController = TextEditingController();
 
   String? _selectedEventId;
-  DateTime? _startDateTime;
-  DateTime? _endDateTime;
   bool _isSubmitting = false;
 
   final Set<String> _selectedServiceIds = {};
+  final Map<String, DateTime?> _serviceStartTimes = {};
+  final Map<String, DateTime?> _serviceEndTimes = {};
 
   double _totalPrice(List<ServiceModel> services) => services
       .where((s) => _selectedServiceIds.contains(s.id) && s.price != null)
@@ -64,23 +64,26 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
-  Future<void> _pickStartDateTime() async {
-    final picked = await _pickDateTime(initial: _startDateTime);
+  Future<void> _pickServiceStartTime(String serviceId) async {
+    final picked = await _pickDateTime(initial: _serviceStartTimes[serviceId]);
     if (picked != null) {
       setState(() {
-        _startDateTime = picked;
-        if (_endDateTime != null && _endDateTime!.isBefore(picked)) {
-          _endDateTime = null;
+        _serviceStartTimes[serviceId] = picked;
+        final end = _serviceEndTimes[serviceId];
+        if (end != null && end.isBefore(picked)) {
+          _serviceEndTimes[serviceId] = null;
         }
       });
     }
   }
 
-  Future<void> _pickEndDateTime() async {
+  Future<void> _pickServiceEndTime(String serviceId) async {
+    final start = _serviceStartTimes[serviceId];
     final picked = await _pickDateTime(
-        initial: _endDateTime ?? _startDateTime?.add(const Duration(hours: 2)));
+        initial: _serviceEndTimes[serviceId] ??
+            start?.add(const Duration(hours: 2)));
     if (picked != null) {
-      if (_startDateTime != null && picked.isBefore(_startDateTime!)) {
+      if (start != null && picked.isBefore(start)) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -90,33 +93,27 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
         );
         return;
       }
-      setState(() => _endDateTime = picked);
+      setState(() => _serviceEndTimes[serviceId] = picked);
     }
   }
 
   String _buildRequestMessage(
       List<ServiceModel> services, double total, String notes) {
+    final fmt = DateFormat('EEE, MMM d – h:mm a');
     final buffer = StringBuffer();
     buffer.writeln('📋 Booking Request');
     buffer.writeln();
     buffer.writeln('Services:');
     for (final s in services) {
-      if (s.price != null) {
-        buffer.writeln('  • ${s.title} — ${s.formattedPrice}');
-      } else {
-        buffer.writeln('  • ${s.title} — Contact for price');
-      }
+      final price = s.price != null ? s.formattedPrice : 'Contact for price';
+      final start = _serviceStartTimes[s.id];
+      final end = _serviceEndTimes[s.id];
+      buffer.writeln('  • ${s.title} — $price');
+      if (start != null) buffer.writeln('    Start: ${fmt.format(start)}');
+      if (end != null) buffer.writeln('    End:   ${fmt.format(end)}');
     }
     buffer.writeln();
     buffer.writeln('Total: ${total.toStringAsFixed(2)} KD');
-    if (_startDateTime != null) {
-      buffer.writeln(
-          'Start: ${DateFormat('EEEE, MMMM d, yyyy – h:mm a').format(_startDateTime!)}');
-    }
-    if (_endDateTime != null) {
-      buffer.writeln(
-          'End:   ${DateFormat('EEEE, MMMM d, yyyy – h:mm a').format(_endDateTime!)}');
-    }
     if (notes.isNotEmpty) {
       buffer.writeln();
       buffer.writeln('Notes: $notes');
@@ -135,24 +132,6 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
       );
       return;
     }
-    if (_startDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a start date & time'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-    if (_endDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an end date & time'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
     if (_selectedServiceIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -161,6 +140,29 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
         ),
       );
       return;
+    }
+
+    // Validate each selected service has start and end times
+    for (final id in _selectedServiceIds) {
+      final service = allServices.firstWhere((s) => s.id == id);
+      if (_serviceStartTimes[id] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please set a start time for "${service.title}"'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      if (_serviceEndTimes[id] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please set an end time for "${service.title}"'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isSubmitting = true);
@@ -173,6 +175,25 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
         .toList();
     final total = _totalPrice(allServices);
     final notes = _notesController.text.trim();
+
+    // Build per-service schedules map
+    final schedules = <String, dynamic>{};
+    for (final id in _selectedServiceIds) {
+      schedules[id] = {
+        'start': _serviceStartTimes[id]!.toIso8601String(),
+        'end': _serviceEndTimes[id]!.toIso8601String(),
+      };
+    }
+
+    // Derive overall start/end for backward compatibility
+    final allStarts = _selectedServiceIds
+        .map((id) => _serviceStartTimes[id]!)
+        .toList()
+      ..sort();
+    final allEnds = _selectedServiceIds
+        .map((id) => _serviceEndTimes[id]!)
+        .toList()
+      ..sort();
 
     final order = OrderModel(
       id: const Uuid().v4(),
@@ -187,8 +208,9 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
           : '${selectedServices.length} services',
       supplierName: widget.supplier.name,
       customerName: currentUser?.name,
-      serviceDate: _startDateTime,
-      serviceEndDate: _endDateTime,
+      serviceDate: allStarts.first,
+      serviceEndDate: allEnds.last,
+      serviceSchedules: schedules,
       totalPrice: total,
       notes: notes.isEmpty ? null : notes,
       status: OrderStatus.pending,
@@ -210,13 +232,11 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
         );
       },
       (_) async {
-        // Refresh organizer supplier bookings list
         final userId = currentUser?.id;
         if (userId != null) {
           ref.invalidate(organizerSupplierBookingsProvider(userId));
         }
 
-        // Create or get chat between organizer and supplier
         try {
           final chatResult = await ref.read(getOrCreateChatProvider((
             currentUserId: currentUser!.id,
@@ -287,7 +307,6 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Supplier info card
               _SupplierInfoCard(supplier: widget.supplier),
               const SizedBox(height: 24),
 
@@ -348,29 +367,6 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Service Date & Time
-              Text(
-                'Service Date & Time *',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _DateTimePicker(
-                label: 'Start',
-                icon: Icons.play_circle_outline,
-                dateTime: _startDateTime,
-                onTap: _pickStartDateTime,
-              ),
-              const SizedBox(height: 8),
-              _DateTimePicker(
-                label: 'End',
-                icon: Icons.stop_circle_outlined,
-                dateTime: _endDateTime,
-                onTap: _pickEndDateTime,
-              ),
-              const SizedBox(height: 16),
-
               // Select Services
               Text(
                 'Select Services *',
@@ -406,36 +402,69 @@ class _BookSupplierScreenState extends ConsumerState<BookSupplierScreen> {
                           children: services.map((service) {
                             final isChecked =
                                 _selectedServiceIds.contains(service.id);
-                            return CheckboxListTile(
-                              value: isChecked,
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) {
-                                    _selectedServiceIds.add(service.id);
-                                  } else {
-                                    _selectedServiceIds.remove(service.id);
-                                  }
-                                });
-                              },
-                              title: Text(
-                                service.title,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimaryDark,
-                                  fontSize: 14,
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CheckboxListTile(
+                                  value: isChecked,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        _selectedServiceIds.add(service.id);
+                                      } else {
+                                        _selectedServiceIds.remove(service.id);
+                                        _serviceStartTimes.remove(service.id);
+                                        _serviceEndTimes.remove(service.id);
+                                      }
+                                    });
+                                  },
+                                  title: Text(
+                                    service.title,
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimaryDark,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    service.formattedPrice,
+                                    style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  activeColor: AppColors.organizerColor,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  dense: true,
                                 ),
-                              ),
-                              subtitle: Text(
-                                service.formattedPrice,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              activeColor: AppColors.organizerColor,
-                              controlAffinity:
-                                  ListTileControlAffinity.leading,
-                              dense: true,
+                                if (isChecked)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 0, 16, 12),
+                                    child: Column(
+                                      children: [
+                                        _DateTimePicker(
+                                          label: 'Start',
+                                          icon: Icons.play_circle_outline,
+                                          dateTime:
+                                              _serviceStartTimes[service.id],
+                                          onTap: () => _pickServiceStartTime(
+                                              service.id),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        _DateTimePicker(
+                                          label: 'End',
+                                          icon: Icons.stop_circle_outlined,
+                                          dateTime:
+                                              _serviceEndTimes[service.id],
+                                          onTap: () => _pickServiceEndTime(
+                                              service.id),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             );
                           }).toList(),
                         ),

@@ -203,6 +203,8 @@ final chatMessagesProvider =
 /// User chats stream provider
 final userChatsStreamProvider =
     StreamProvider.family<List<ChatModel>, String>((ref, userId) {
+  final currentUserId = ref.watch(currentUserIdProvider);
+  if (currentUserId == null) return const Stream.empty();
   final repository = ref.watch(chatRepositoryProvider);
   return repository.watchUserChats(userId);
 });
@@ -210,6 +212,8 @@ final userChatsStreamProvider =
 /// Chat messages stream provider
 final chatMessagesStreamProvider =
     StreamProvider.family<List<MessageModel>, String>((ref, chatId) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return const Stream.empty();
   final repository = ref.watch(chatRepositoryProvider);
   return repository.watchMessages(chatId);
 });
@@ -232,6 +236,8 @@ final unreadCountStreamProvider =
 /// Single chat stream provider
 final chatStreamProvider =
     StreamProvider.family<ChatModel?, String>((ref, chatId) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return const Stream.empty();
   final repository = ref.watch(chatRepositoryProvider);
   return repository.watchChat(chatId);
 });

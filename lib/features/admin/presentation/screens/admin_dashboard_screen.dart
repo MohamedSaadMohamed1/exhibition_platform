@@ -34,8 +34,37 @@ class AdminDashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              ref.read(authNotifierProvider.notifier).signOut();
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: AppColors.surfaceDark,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Text('Log Out', style: TextStyle(color: Colors.white)),
+                  content: const Text(
+                    'Are you sure you want to log out?',
+                    style: TextStyle(color: AppColors.textSecondaryDark),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Log Out'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                ref.read(authNotifierProvider.notifier).signOut();
+              }
             },
           ),
         ],

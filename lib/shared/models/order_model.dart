@@ -27,6 +27,7 @@ class OrderModel with _$OrderModel {
     int? quantity,
     @TimestampConverter() DateTime? serviceDate,
     @TimestampConverter() DateTime? serviceEndDate,
+    @Default({}) Map<String, dynamic> serviceSchedules,
     @Default(OrderStatus.pending) OrderStatus status,
     String? rejectionReason,
     String? cancellationReason,

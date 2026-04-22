@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_dimensions.dart';
@@ -216,7 +217,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   IconButton(
                     icon: const Icon(Icons.share),
                     onPressed: () {
-                      // Share event
+                      final buffer = StringBuffer('Check out ${event.title}!');
+                      if (event.location.isNotEmpty) buffer.write('\nLocation: ${event.location}');
+                      Share.share(buffer.toString());
                     },
                   ),
                 ],

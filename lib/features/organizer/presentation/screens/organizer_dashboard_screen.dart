@@ -68,7 +68,7 @@ class _OrganizerDashboardScreenState extends ConsumerState<OrganizerDashboardScr
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          _DashboardTab(currentUser: currentUser),
+          _DashboardTab(currentUser: currentUser, onViewAllEvents: () => _onNavTap(1)),
           const _EventsTab(),
           const _BookingsTab(),
           const _MessagesTab(),
@@ -82,8 +82,9 @@ class _OrganizerDashboardScreenState extends ConsumerState<OrganizerDashboardScr
 // Dashboard Tab
 class _DashboardTab extends ConsumerWidget {
   final dynamic currentUser;
+  final VoidCallback? onViewAllEvents;
 
-  const _DashboardTab({this.currentUser});
+  const _DashboardTab({this.currentUser, this.onViewAllEvents});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -267,7 +268,7 @@ class _DashboardTab extends ConsumerWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: onViewAllEvents,
                   child: const Text('View All'),
                 ),
               ],
@@ -294,6 +295,7 @@ class _DashboardTab extends ConsumerWidget {
                   date: dateStr,
                   booths: '${e.boothCount} booths',
                   progress: 0,
+                  onTap: () => context.push('/events/${e.id}'),
                 );
               }),
             const SizedBox(height: 100), // Space for nav
@@ -411,17 +413,21 @@ class _EventItem extends StatelessWidget {
   final String date;
   final String booths;
   final double progress;
+  final VoidCallback? onTap;
 
   const _EventItem({
     required this.title,
     required this.date,
     required this.booths,
     required this.progress,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -486,6 +492,7 @@ class _EventItem extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

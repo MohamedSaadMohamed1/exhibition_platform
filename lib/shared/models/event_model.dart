@@ -14,6 +14,8 @@ class EventModel {
   final List<String> images;
   final int interestedCount;
   final int boothCount;
+  final double rating;
+  final int reviewsCount;
   final String organizerId;
   final String? organizerName;
   final EventStatus status;
@@ -36,6 +38,8 @@ class EventModel {
     this.images = const [],
     this.interestedCount = 0,
     this.boothCount = 0,
+    this.rating = 0.0,
+    this.reviewsCount = 0,
     required this.organizerId,
     this.organizerName,
     this.status = EventStatus.published,
@@ -60,6 +64,8 @@ class EventModel {
       images: (json['images'] as List<dynamic>?)?.cast<String>() ?? [],
       interestedCount: json['interestedCount'] as int? ?? 0,
       boothCount: json['boothCount'] as int? ?? 0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewsCount: json['reviewsCount'] as int? ?? 0,
       organizerId: json['organizerId'] as String? ?? '',
       organizerName: json['organizerName'] as String?,
       status: _parseEventStatus(json['status']),
@@ -106,6 +112,8 @@ class EventModel {
       'images': images,
       'interestedCount': interestedCount,
       'boothCount': boothCount,
+      'rating': rating,
+      'reviewsCount': reviewsCount,
       'organizerId': organizerId,
       'organizerName': organizerName,
       'status': status.name,
@@ -169,6 +177,8 @@ class EventModel {
     List<String>? images,
     int? interestedCount,
     int? boothCount,
+    double? rating,
+    int? reviewsCount,
     String? organizerId,
     String? organizerName,
     EventStatus? status,
@@ -191,6 +201,8 @@ class EventModel {
       images: images ?? this.images,
       interestedCount: interestedCount ?? this.interestedCount,
       boothCount: boothCount ?? this.boothCount,
+      rating: rating ?? this.rating,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
       organizerId: organizerId ?? this.organizerId,
       organizerName: organizerName ?? this.organizerName,
       status: status ?? this.status,

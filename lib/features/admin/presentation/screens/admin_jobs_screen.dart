@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/job_model.dart';
 import '../../../../shared/providers/providers.dart';
@@ -600,6 +601,7 @@ class _AppCard extends StatelessWidget {
               _Row(Icons.phone_outlined, application.phone),
             if (application.coverLetter?.isNotEmpty == true)
               _Row(Icons.description_outlined, application.coverLetter!),
+            _CvRow(url: application.resumeUrl),
             _Row(Icons.calendar_today_outlined,
                 '${application.createdAt.day}/${application.createdAt.month}/${application.createdAt.year}'),
             if (application.feedback?.isNotEmpty == true)
@@ -680,6 +682,50 @@ class _AppCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reject'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CvRow extends StatelessWidget {
+  final String? url;
+  const _CvRow({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUrl = url != null && url!.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(Icons.attach_file,
+              size: 14,
+              color: hasUrl ? AppColors.primary : AppColors.textSecondaryDark),
+          const SizedBox(width: 6),
+          Text('CV: ',
+              style:
+                  TextStyle(color: AppColors.textSecondaryDark, fontSize: 13)),
+          if (hasUrl)
+            GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse(url!);
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+              child: const Text(
+                'View / Download CV',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.primary,
+                ),
+              ),
+            )
+          else
+            Text('No CV uploaded',
+                style: TextStyle(
+                    color: AppColors.textSecondaryDark, fontSize: 13)),
         ],
       ),
     );

@@ -21,12 +21,26 @@ interface NotificationPayload {
 
 async function sendPushNotification(payload: NotificationPayload): Promise<void> {
   try {
+    // Always store notification in Firestore first — visible in-app regardless of push delivery.
+    // skipPush: true prevents onNotificationCreated from re-triggering a second FCM push.
+    await db.collection('notifications').add({
+      userId: payload.userId,
+      title: payload.title,
+      body: payload.body,
+      type: payload.type ?? 'general',
+      targetId: payload.targetId ?? null,
+      data: payload.data || {},
+      isRead: false,
+      skipPush: true,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
     // Get user's FCM tokens (support both single token and array)
     const userDoc = await db.collection('users').doc(payload.userId).get();
     const userData = userDoc.data();
 
     if (!userData) {
-      console.log(`User ${payload.userId} not found`);
+      console.log(`User ${payload.userId} not found — notification stored, push skipped`);
       return;
     }
 
@@ -42,7 +56,7 @@ async function sendPushNotification(payload: NotificationPayload): Promise<void>
     }
 
     if (tokens.length === 0) {
-      console.log(`No FCM tokens for user ${payload.userId}`);
+      console.log(`No FCM tokens for user ${payload.userId} — notification stored, push skipped`);
       return;
     }
 
@@ -92,20 +106,6 @@ async function sendPushNotification(payload: NotificationPayload): Promise<void>
         fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
       });
     }
-
-    // Store notification in Firestore
-    // skipPush: true prevents onNotificationCreated from re-triggering a second push
-    await db.collection('notifications').add({
-      userId: payload.userId,
-      title: payload.title,
-      body: payload.body,
-      type: payload.type ?? 'general',
-      targetId: payload.targetId ?? null,
-      data: payload.data || {},
-      isRead: false,
-      skipPush: true,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
 
     console.log(`Notification sent to user ${payload.userId} (${response.successCount}/${tokens.length} tokens)`);
   } catch (error) {
@@ -158,6 +158,21 @@ export const onBookingCreated = functions.firestore
       userId: booking.organizerId,
       title: 'New Booking Request',
       body: `${exhibitorName} wants to book booth ${booking.boothNumber || ''} for ${eventTitle}`,
+      type: 'bookingConfirmed',
+      data: {
+        type: 'booking_request',
+        bookingId: context.params.requestId,
+        eventId: booking.eventId,
+      },
+    });
+
+    // Notify exhibitor: confirmation that their request was submitted
+    await sendPushNotification({
+      userId: booking.exhibitorId,
+      title: 'Booking Request Submitted',
+      body: `Your booking request for ${eventTitle} has been submitted and is awaiting approval.`,
+      type: 'bookingConfirmed',
+      targetId: context.params.requestId,
       data: {
         type: 'booking_request',
         bookingId: context.params.requestId,
@@ -166,7 +181,7 @@ export const onBookingCreated = functions.firestore
     });
   });
 
-// Notify exhibitor when booking status changes
+// Notify exhibitor when booking status changes; also send exhibitor a submission confirmation
 export const onBookingStatusChanged = functions.firestore
   .document('booking_requests/{requestId}')
   .onUpdate(async (change, context) => {
@@ -206,11 +221,19 @@ export const onBookingStatusChanged = functions.firestore
         return;
     }
 
+    const bookingTypeMap: Record<string, string> = {
+      approved: 'bookingConfirmed',
+      confirmed: 'bookingConfirmed',
+      rejected: 'bookingCancelled',
+      cancelled: 'bookingCancelled',
+    };
+
     // Notify exhibitor
     await sendPushNotification({
       userId: after.exhibitorId,
       title,
       body,
+      type: bookingTypeMap[after.status] ?? 'systemAnnouncement',
       data: {
         type: 'booking_status',
         bookingId: context.params.requestId,
@@ -258,6 +281,8 @@ export const onNewMessage = functions.firestore
       userId: recipientId,
       title: senderName,
       body: message.type === 'image' ? '📷 Sent an image' : message.text,
+      type: 'newMessage',
+      targetId: chatId,
       data: {
         type: 'new_message',
         chatId,
@@ -291,6 +316,7 @@ export const onEventUpdated = functions.firestore
           userId: doc.data().userId,
           title: 'Event Published!',
           body: `${after.title} is now live. Check it out!`,
+          type: 'newEvent',
           data: {
             type: 'event_published',
             eventId,
@@ -304,7 +330,7 @@ export const onEventUpdated = functions.firestore
     // Check if event dates changed
     if (before.startDate !== after.startDate || before.location !== after.location) {
       // Get all bookings for this event
-      const bookings = await db.collection('bookingRequests')
+      const bookings = await db.collection('booking_requests')
         .where('eventId', '==', eventId)
         .where('status', 'in', ['approved', 'confirmed'])
         .get();
@@ -315,6 +341,7 @@ export const onEventUpdated = functions.firestore
           userId: doc.data().exhibitorId,
           title: 'Event Details Updated',
           body: `${after.title} details have been updated. Please check the new information.`,
+          type: 'eventUpdate',
           data: {
             type: 'event_updated',
             eventId,
@@ -490,14 +517,32 @@ export const onOrderCreated = functions.firestore
 
     if (!order.supplierId) return;
 
+    const customerName = order.customerName || 'A customer';
+    const serviceLabel = order.serviceNames?.length
+      ? order.serviceNames.join(', ')
+      : (order.serviceName || 'a service');
+
+    // Notify supplier of new order
     await sendPushNotification({
       userId: order.supplierId,
       title: 'New Order Received',
-      body: 'You have a new order from a customer.',
+      body: `${customerName} has requested "${serviceLabel}".`,
       type: 'orderPlaced',
       targetId: orderId,
       data: { type: 'order', orderId },
     });
+
+    // Notify customer (organizer) that their request was sent
+    if (order.customerId) {
+      await sendPushNotification({
+        userId: order.customerId,
+        title: 'Order Request Sent',
+        body: `Your service request for "${serviceLabel}" has been sent to the supplier and is awaiting confirmation.`,
+        type: 'orderPlaced',
+        targetId: orderId,
+        data: { type: 'order', orderId },
+      });
+    }
   });
 
 // Notify customer when order status changes; notify supplier on payment
@@ -508,14 +553,22 @@ export const onOrderStatusChanged = functions.firestore
     const after = change.after.data();
     const { orderId } = context.params;
 
-    // Order status notifications
+    // Order status notifications to customer (organizer)
     if (before.status !== after.status && after.customerId) {
+      const serviceLabel = after.serviceNames?.length
+        ? after.serviceNames.join(', ')
+        : (after.serviceName || 'your service');
+
+      const rejectionNote = after.rejectionReason ? ` Reason: ${after.rejectionReason}` : '';
+
       const statusMap: Record<string, { title: string; body: string; type: string }> = {
-        confirmed: { title: 'Order Confirmed', body: 'Your order has been confirmed by the supplier.', type: 'orderConfirmed' },
-        shipped:   { title: 'Order Shipped',   body: 'Your order is on its way!',                       type: 'orderShipped' },
-        delivered: { title: 'Order Delivered', body: 'Your order has been delivered.',                  type: 'orderDelivered' },
-        cancelled: { title: 'Order Cancelled', body: 'Your order has been cancelled.',                  type: 'orderCancelled' },
+        accepted:   { title: 'Order Accepted',    body: `Your order for "${serviceLabel}" has been accepted by the supplier.`,          type: 'orderConfirmed' },
+        rejected:   { title: 'Order Rejected',    body: `Your order for "${serviceLabel}" was rejected by the supplier.${rejectionNote}`, type: 'orderCancelled' },
+        inProgress: { title: 'Service Started',   body: `The supplier has started working on "${serviceLabel}".`,                       type: 'orderShipped'   },
+        completed:  { title: 'Service Completed', body: `Your service "${serviceLabel}" has been completed successfully.`,              type: 'orderDelivered' },
+        cancelled:  { title: 'Order Cancelled',   body: `Your order for "${serviceLabel}" has been cancelled.`,                         type: 'orderCancelled' },
       };
+
       const msg = statusMap[after.status];
       if (msg) {
         await sendPushNotification({
@@ -523,29 +576,6 @@ export const onOrderStatusChanged = functions.firestore
           ...msg,
           targetId: orderId,
           data: { type: 'order', orderId, status: after.status },
-        });
-      }
-    }
-
-    // Payment status notifications
-    if (before.paymentStatus !== after.paymentStatus) {
-      if (after.paymentStatus === 'paid' && after.supplierId) {
-        await sendPushNotification({
-          userId: after.supplierId,
-          title: 'Payment Received',
-          body: 'Payment for an order has been received.',
-          type: 'paymentReceived',
-          targetId: orderId,
-          data: { type: 'payment', orderId, paymentStatus: 'paid' },
-        });
-      } else if (after.paymentStatus === 'failed' && after.customerId) {
-        await sendPushNotification({
-          userId: after.customerId,
-          title: 'Payment Failed',
-          body: 'Your payment could not be processed. Please try again.',
-          type: 'paymentFailed',
-          targetId: orderId,
-          data: { type: 'payment', orderId, paymentStatus: 'failed' },
         });
       }
     }
@@ -673,6 +703,77 @@ export const setRoleClaimsOnUserWrite = functions.firestore
 // ========================
 // ANALYTICS & AGGREGATIONS
 // ========================
+
+// ========================
+// REVIEW NOTIFICATIONS
+// ========================
+
+export const onReviewCreated = functions.firestore
+  .document('reviews/{reviewId}')
+  .onCreate(async (snap, context) => {
+    const review = snap.data();
+    if (!review) return null;
+
+    // Only notify supplier when reviewed
+    if (review.type !== 'supplier') return null;
+
+    try {
+      const supplierDoc = await db.collection('suppliers').doc(review.targetId).get();
+      const supplierData = supplierDoc.data();
+      if (!supplierData?.userId) return null;
+
+      await sendPushNotification({
+        userId: supplierData.userId,
+        title: 'تقييم جديد ⭐',
+        body: `${review.reviewerName ?? 'مستخدم'} قيّمك بـ ${review.rating} نجوم`,
+        type: 'newReview',
+        targetId: review.targetId,
+        data: {
+          reviewId: context.params.reviewId,
+          screen: 'supplier_reviews',
+        },
+      });
+    } catch (err) {
+      console.error('Error in onReviewCreated:', err);
+    }
+
+    return null;
+  });
+
+// ========================
+// BUSINESS REQUEST NOTIFICATIONS
+// ========================
+
+// Notify supplier when admin approves or rejects their business request
+export const onBusinessRequestStatusChanged = functions.firestore
+  .document('business_requests/{requestId}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+
+    if (before.status === after.status || !after.supplierId) return;
+
+    if (after.status === 'approved') {
+      await sendPushNotification({
+        userId: after.supplierId,
+        title: 'Business Request Approved!',
+        body: 'Your business request has been approved. You can now access all business features.',
+        type: 'accountVerified',
+        targetId: context.params.requestId,
+        data: { type: 'business_request', status: 'approved' },
+      });
+    } else if (after.status === 'rejected') {
+      const rejectionNote = after.rejectionReason ? ` Reason: ${after.rejectionReason}` : '';
+      await sendPushNotification({
+        userId: after.supplierId,
+        title: 'Business Request Rejected',
+        body: `Your business request was not approved.${rejectionNote}`,
+        type: 'systemAnnouncement',
+        targetId: context.params.requestId,
+        data: { type: 'business_request', status: 'rejected' },
+      });
+    }
+  });
 
 // Update interested count when interest is added/removed
 export const onInterestChange = functions.firestore

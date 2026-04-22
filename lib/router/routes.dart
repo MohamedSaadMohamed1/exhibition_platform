@@ -70,6 +70,9 @@ abstract class AppRoutes {
   // Services & Suppliers (for visitors)
   static const String suppliers = '/suppliers';
   static const String supplierDetail = '/suppliers/:supplierId';
+  static const String supplierAllServices = '/suppliers/:supplierId/services';
+  static String supplierServicesPath(String supplierId) =>
+      '/suppliers/$supplierId/services';
   static const String services = '/services';
   static const String serviceDetail = '/services/:serviceId';
 
@@ -97,4 +100,8 @@ abstract class AppRoutes {
 
   // Notifications
   static const String notifications = '/notifications';
+
+  // Reviews
+  static const String writeReview = 'write-review';
+  static const String allReviews = 'all-reviews';
 }

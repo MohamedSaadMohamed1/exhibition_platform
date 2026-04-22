@@ -265,10 +265,22 @@ class BookingRepositoryImpl implements BookingRepository {
     String bookingId,
   ) async {
     try {
-      await _bookingsCollection.doc(bookingId).update({
-        'status': BookingStatus.approved.value,
-        'approvedAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
+      final bookingDoc = await _bookingsCollection.doc(bookingId).get();
+      final booking = BookingRequest.fromFirestore(bookingDoc);
+
+      await _firestore.runTransaction((transaction) async {
+        transaction.update(_bookingsCollection.doc(bookingId), {
+          'status': BookingStatus.approved.value,
+          'approvedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        transaction.update(_boothRef(booking.eventId, booking.boothId), {
+          'status': BoothStatus.booked.value,
+          'bookedBy': booking.exhibitorId,
+          'bookedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
       });
 
       final updatedDoc = await _bookingsCollection.doc(bookingId).get();

@@ -48,6 +48,7 @@ import '../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../features/interested/presentation/screens/interested_events_screen.dart';
 import '../features/suppliers/presentation/screens/suppliers_screen.dart';
 import '../features/suppliers/presentation/screens/supplier_detail_screen.dart';
+import '../features/suppliers/presentation/screens/supplier_all_services_screen.dart';
 import '../features/jobs/presentation/screens/jobs_screen.dart';
 import '../features/jobs/presentation/screens/job_detail_screen.dart';
 import '../features/orders/presentation/screens/my_orders_screen.dart';
@@ -57,6 +58,9 @@ import '../features/notifications/presentation/screens/notifications_screen.dart
 import '../features/support/presentation/screens/help_support_screen.dart';
 import '../features/admin/presentation/screens/admin_support_tickets_screen.dart';
 import '../features/admin/presentation/screens/admin_business_requests_screen.dart';
+import '../features/reviews/presentation/screens/write_review_screen.dart';
+import '../features/reviews/presentation/screens/all_reviews_screen.dart';
+import '../shared/models/review_model.dart';
 
 /// GoRouter provider with role-based guards
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -350,6 +354,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return SupplierDetailScreen(supplierId: supplierId);
         },
       ),
+      GoRoute(
+        path: AppRoutes.supplierAllServices,
+        builder: (context, state) {
+          final supplierId = state.pathParameters['supplierId']!;
+          final supplierName = state.uri.queryParameters['name'] ?? 'Supplier';
+          return SupplierAllServicesScreen(
+            supplierId: supplierId,
+            supplierName: supplierName,
+          );
+        },
+      ),
 
       // Services Routes
       GoRoute(
@@ -393,6 +408,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.helpSupport,
         builder: (context, state) => const HelpSupportScreen(),
+      ),
+
+      // Write Review Route
+      GoRoute(
+        name: AppRoutes.writeReview,
+        path: '/write-review',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return WriteReviewScreen(
+            targetId: extra['targetId'] as String,
+            targetName: extra['targetName'] as String,
+            targetImage: extra['targetImage'] as String?,
+            reviewType: extra['reviewType'] as ReviewType,
+          );
+        },
+      ),
+
+      // All Reviews Route
+      GoRoute(
+        name: AppRoutes.allReviews,
+        path: '/all-reviews',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AllReviewsScreen(
+            targetId: extra['targetId'] as String,
+            targetName: extra['targetName'] as String,
+            targetImage: extra['targetImage'] as String?,
+            reviewType: extra['reviewType'] as ReviewType,
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

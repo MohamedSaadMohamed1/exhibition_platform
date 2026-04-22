@@ -76,7 +76,10 @@ class _SupplierDashboardScreenState
           Widget child;
           switch (_currentIndex) {
             case 0:
-              child = _DashboardTab(currentUser: currentUser);
+              child = _DashboardTab(
+                currentUser: currentUser,
+                onViewAllOrders: () => _onNavTap(2),
+              );
               break;
             case 1:
               child = const _ServicesTab();
@@ -91,7 +94,10 @@ class _SupplierDashboardScreenState
               child = const _ProfileTab();
               break;
             default:
-              child = _DashboardTab(currentUser: currentUser);
+              child = _DashboardTab(
+                currentUser: currentUser,
+                onViewAllOrders: () => _onNavTap(2),
+              );
           }
           return SizedBox(
             width: constraints.maxWidth,
@@ -109,8 +115,9 @@ class _SupplierDashboardScreenState
 // ============================================================================
 class _DashboardTab extends ConsumerWidget {
   final dynamic currentUser;
+  final VoidCallback? onViewAllOrders;
 
-  const _DashboardTab({this.currentUser});
+  const _DashboardTab({this.currentUser, this.onViewAllOrders});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -182,9 +189,7 @@ class _DashboardTab extends ConsumerWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      // Navigate to orders tab
-                    },
+                    onPressed: onViewAllOrders,
                     child: const Text('View All'),
                   ),
                 ],
@@ -346,7 +351,30 @@ class _BusinessSwitcherHeader extends ConsumerWidget {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              Navigator.pop(ctx);
+              final currentUser = ref.read(currentUserProvider).valueOrNull;
+              if (currentUser == null) return;
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surfaceDark,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (sheetCtx) => _NewBusinessRequestSheet(
+                  currentUser: currentUser,
+                  onSuccess: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Request submitted! Awaiting admin approval.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.supplierColor,
               foregroundColor: Colors.white,
@@ -2461,11 +2489,6 @@ class _ProfileTab extends ConsumerWidget {
     final currentUser = ref.read(currentUserProvider).valueOrNull;
     if (currentUser == null) return;
 
-    final nameCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2475,10 +2498,6 @@ class _ProfileTab extends ConsumerWidget {
       ),
       builder: (ctx) => _NewBusinessRequestSheet(
         currentUser: currentUser,
-        nameCtrl: nameCtrl,
-        descCtrl: descCtrl,
-        emailCtrl: emailCtrl,
-        addressCtrl: addressCtrl,
         onSuccess: () {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2488,12 +2507,7 @@ class _ProfileTab extends ConsumerWidget {
           );
         },
       ),
-    ).whenComplete(() {
-      nameCtrl.dispose();
-      descCtrl.dispose();
-      emailCtrl.dispose();
-      addressCtrl.dispose();
-    });
+    );
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
@@ -2536,18 +2550,10 @@ class _ProfileTab extends ConsumerWidget {
 // ============================================================================
 class _NewBusinessRequestSheet extends StatefulWidget {
   final dynamic currentUser;
-  final TextEditingController nameCtrl;
-  final TextEditingController descCtrl;
-  final TextEditingController emailCtrl;
-  final TextEditingController addressCtrl;
   final VoidCallback onSuccess;
 
   const _NewBusinessRequestSheet({
     required this.currentUser,
-    required this.nameCtrl,
-    required this.descCtrl,
-    required this.emailCtrl,
-    required this.addressCtrl,
     required this.onSuccess,
   });
 
@@ -2558,10 +2564,23 @@ class _NewBusinessRequestSheet extends StatefulWidget {
 
 class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
   final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   String? _selectedCategory;
-  String? _completePhone; // full E.164 phone e.g. +96512345678
+  String? _completePhone;
   bool _submitting = false;
   String? _errorMsg;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    _emailCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     setState(() => _errorMsg = null);
@@ -2579,16 +2598,16 @@ class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
         id: doc.id,
         supplierId: widget.currentUser.id as String,
         supplierName: widget.currentUser.name as String,
-        businessName: widget.nameCtrl.text.trim(),
-        description: widget.descCtrl.text.trim(),
+        businessName: _nameCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
         category: _selectedCategory,
-        contactEmail: widget.emailCtrl.text.trim().isEmpty
+        contactEmail: _emailCtrl.text.trim().isEmpty
             ? null
-            : widget.emailCtrl.text.trim(),
+            : _emailCtrl.text.trim(),
         contactPhone: _completePhone,
-        address: widget.addressCtrl.text.trim().isEmpty
+        address: _addressCtrl.text.trim().isEmpty
             ? null
-            : widget.addressCtrl.text.trim(),
+            : _addressCtrl.text.trim(),
         createdAt: DateTime.now(),
       );
       await doc.set(request.toFirestore());
@@ -2678,7 +2697,7 @@ class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
               const SizedBox(height: 20),
               _label('Business Name'),
               TextFormField(
-                controller: widget.nameCtrl,
+                controller: _nameCtrl,
                 style: const TextStyle(color: AppColors.textPrimaryDark),
                 decoration: _inputDecoration('Enter business name'),
                 validator: (v) =>
@@ -2699,7 +2718,7 @@ class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
               const SizedBox(height: 16),
               _label('Description'),
               TextFormField(
-                controller: widget.descCtrl,
+                controller: _descCtrl,
                 style: const TextStyle(color: AppColors.textPrimaryDark),
                 maxLines: 3,
                 decoration: _inputDecoration('Describe your business'),
@@ -2709,7 +2728,7 @@ class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
               const SizedBox(height: 16),
               _label('Contact Email (optional)'),
               TextFormField(
-                controller: widget.emailCtrl,
+                controller: _emailCtrl,
                 style: const TextStyle(color: AppColors.textPrimaryDark),
                 keyboardType: TextInputType.emailAddress,
                 decoration: _inputDecoration('business@example.com'),
@@ -2748,7 +2767,7 @@ class _NewBusinessRequestSheetState extends State<_NewBusinessRequestSheet> {
               const SizedBox(height: 16),
               _label('Address (optional)'),
               TextFormField(
-                controller: widget.addressCtrl,
+                controller: _addressCtrl,
                 style: const TextStyle(color: AppColors.textPrimaryDark),
                 decoration: _inputDecoration('City, Country'),
               ),

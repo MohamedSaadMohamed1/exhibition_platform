@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/admin_job_applications_provider.dart';
 
@@ -276,6 +277,7 @@ class _ApplicationCard extends StatelessWidget {
                 label: 'Cover Letter',
                 value: application.coverLetter!,
               ),
+            _CvLinkRow(url: application.resumeUrl),
             _InfoRow(
               icon: Icons.calendar_today_outlined,
               label: 'Applied',
@@ -294,38 +296,85 @@ class _ApplicationCard extends StatelessWidget {
               const SizedBox(height: 12),
               const Divider(color: Colors.white12),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  if (application.isPending)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => onUpdateStatus('reviewed', null),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                          side: const BorderSide(color: Colors.blue),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmall =
+                      constraints.maxWidth < 400 && application.isPending;
+                  if (isSmall) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        OutlinedButton(
+                          onPressed: () => onUpdateStatus('reviewed', null),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.blue,
+                            side: const BorderSide(color: Colors.blue),
+                            textStyle: const TextStyle(fontSize: 10),
+                          ),
+                          child: const Text('Reviewed'),
                         ),
-                        child: const Text('Reviewed'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    onUpdateStatus('accepted', null),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green),
+                                child: const Text('Accept'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _showRejectDialog(context),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red),
+                                child: const Text('Reject'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      if (application.isPending) ...[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => onUpdateStatus('reviewed', null),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.blue,
+                              side: const BorderSide(color: Colors.blue),
+                              textStyle: const TextStyle(fontSize: 10),
+                            ),
+                            child: const Text('Reviewed'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => onUpdateStatus('accepted', null),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green),
+                          child: const Text('Accept'),
+                        ),
                       ),
-                    ),
-                  if (application.isPending) const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => onUpdateStatus('accepted', null),
-                      style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      child: const Text('Accept'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _showRejectDialog(context),
-                      style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Reject'),
-                    ),
-                  ),
-                ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _showRejectDialog(context),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red),
+                          child: const Text('Reject'),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ],
@@ -405,6 +454,54 @@ class _InfoRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 3),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CvLinkRow extends StatelessWidget {
+  final String? url;
+  const _CvLinkRow({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUrl = url != null && url!.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            Icons.attach_file,
+            size: 14,
+            color: hasUrl ? AppColors.primary : AppColors.textSecondaryDark,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'CV: ',
+            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+          ),
+          if (hasUrl)
+            GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse(url!);
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+              child: const Text(
+                'View / Download CV',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.primary,
+                ),
+              ),
+            )
+          else
+            Text(
+              'No CV uploaded',
+              style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+            ),
         ],
       ),
     );

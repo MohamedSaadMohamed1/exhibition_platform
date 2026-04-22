@@ -11,6 +11,7 @@ class AdminJobApplication {
   final String phone;
   final String position;
   final String? coverLetter;
+  final String? resumeUrl;
   final String? status;
   final String? feedback;
   final String? source;
@@ -23,6 +24,7 @@ class AdminJobApplication {
     required this.phone,
     required this.position,
     this.coverLetter,
+    this.resumeUrl,
     this.status,
     this.feedback,
     this.source,
@@ -45,6 +47,7 @@ class AdminJobApplication {
       phone: (data['phone'] as String?) ?? (data['userPhone'] as String?) ?? '',
       position: (data['position'] as String?) ?? '',
       coverLetter: data['coverLetter'] as String?,
+      resumeUrl: data['resumeUrl'] as String?,
       status: (data['status'] as String?) ?? 'pending',
       feedback: data['feedback'] as String?,
       source: data['source'] as String?,

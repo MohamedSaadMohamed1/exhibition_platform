@@ -71,11 +71,16 @@ class NotificationModel with _$NotificationModel {
       _$NotificationModelFromJson(json);
 
   factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return NotificationModel.fromJson({
+    final rawData = doc.data() as Map<String, dynamic>;
+    final typeStr = rawData['type'] as String?;
+    final validTypes = NotificationType.values.map((e) => e.name).toSet();
+    final data = <String, dynamic>{
       'id': doc.id,
-      ...data,
-    });
+      ...rawData,
+      if (typeStr != null && !validTypes.contains(typeStr))
+        'type': NotificationType.systemAnnouncement.name,
+    };
+    return NotificationModel.fromJson(data);
   }
 
   /// Convert to Firestore map

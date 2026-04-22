@@ -165,12 +165,14 @@ class BoothFormFields extends StatelessWidget {
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Price *',
             hintText: 'Enter price',
-            prefixText: 'KD ',
-            prefixIcon: Icon(Icons.attach_money),
-            border: OutlineInputBorder(),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text('KD', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+            border: const OutlineInputBorder(),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {

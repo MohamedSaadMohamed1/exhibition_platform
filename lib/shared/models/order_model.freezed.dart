@@ -41,6 +41,8 @@ mixin _$OrderModel {
   DateTime? get serviceDate => throw _privateConstructorUsedError;
   @TimestampConverter()
   DateTime? get serviceEndDate => throw _privateConstructorUsedError;
+  Map<String, dynamic> get serviceSchedules =>
+      throw _privateConstructorUsedError;
   OrderStatus get status => throw _privateConstructorUsedError;
   String? get rejectionReason => throw _privateConstructorUsedError;
   String? get cancellationReason => throw _privateConstructorUsedError;
@@ -87,6 +89,7 @@ abstract class $OrderModelCopyWith<$Res> {
       int? quantity,
       @TimestampConverter() DateTime? serviceDate,
       @TimestampConverter() DateTime? serviceEndDate,
+      Map<String, dynamic> serviceSchedules,
       OrderStatus status,
       String? rejectionReason,
       String? cancellationReason,
@@ -128,6 +131,7 @@ class _$OrderModelCopyWithImpl<$Res, $Val extends OrderModel>
     Object? quantity = freezed,
     Object? serviceDate = freezed,
     Object? serviceEndDate = freezed,
+    Object? serviceSchedules = null,
     Object? status = null,
     Object? rejectionReason = freezed,
     Object? cancellationReason = freezed,
@@ -202,6 +206,10 @@ class _$OrderModelCopyWithImpl<$Res, $Val extends OrderModel>
           ? _value.serviceEndDate
           : serviceEndDate // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      serviceSchedules: null == serviceSchedules
+          ? _value.serviceSchedules
+          : serviceSchedules // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -263,6 +271,7 @@ abstract class _$$OrderModelImplCopyWith<$Res>
       int? quantity,
       @TimestampConverter() DateTime? serviceDate,
       @TimestampConverter() DateTime? serviceEndDate,
+      Map<String, dynamic> serviceSchedules,
       OrderStatus status,
       String? rejectionReason,
       String? cancellationReason,
@@ -302,6 +311,7 @@ class __$$OrderModelImplCopyWithImpl<$Res>
     Object? quantity = freezed,
     Object? serviceDate = freezed,
     Object? serviceEndDate = freezed,
+    Object? serviceSchedules = null,
     Object? status = null,
     Object? rejectionReason = freezed,
     Object? cancellationReason = freezed,
@@ -376,6 +386,10 @@ class __$$OrderModelImplCopyWithImpl<$Res>
           ? _value.serviceEndDate
           : serviceEndDate // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      serviceSchedules: null == serviceSchedules
+          ? _value._serviceSchedules
+          : serviceSchedules // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -432,6 +446,7 @@ class _$OrderModelImpl extends _OrderModel {
       this.quantity,
       @TimestampConverter() this.serviceDate,
       @TimestampConverter() this.serviceEndDate,
+      final Map<String, dynamic> serviceSchedules = const {},
       this.status = OrderStatus.pending,
       this.rejectionReason,
       this.cancellationReason,
@@ -442,6 +457,7 @@ class _$OrderModelImpl extends _OrderModel {
       @NullableTimestampConverter() this.completedAt})
       : _serviceIds = serviceIds,
         _serviceNames = serviceNames,
+        _serviceSchedules = serviceSchedules,
         super._();
 
   factory _$OrderModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -500,6 +516,15 @@ class _$OrderModelImpl extends _OrderModel {
   @override
   @TimestampConverter()
   final DateTime? serviceEndDate;
+  final Map<String, dynamic> _serviceSchedules;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get serviceSchedules {
+    if (_serviceSchedules is EqualUnmodifiableMapView) return _serviceSchedules;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_serviceSchedules);
+  }
+
   @override
   @JsonKey()
   final OrderStatus status;
@@ -524,7 +549,7 @@ class _$OrderModelImpl extends _OrderModel {
 
   @override
   String toString() {
-    return 'OrderModel(id: $id, serviceId: $serviceId, supplierId: $supplierId, customerId: $customerId, eventId: $eventId, serviceIds: $serviceIds, serviceNames: $serviceNames, serviceName: $serviceName, supplierName: $supplierName, customerName: $customerName, customerPhone: $customerPhone, notes: $notes, totalPrice: $totalPrice, quantity: $quantity, serviceDate: $serviceDate, serviceEndDate: $serviceEndDate, status: $status, rejectionReason: $rejectionReason, cancellationReason: $cancellationReason, cancelledBy: $cancelledBy, createdAt: $createdAt, updatedAt: $updatedAt, confirmedAt: $confirmedAt, completedAt: $completedAt)';
+    return 'OrderModel(id: $id, serviceId: $serviceId, supplierId: $supplierId, customerId: $customerId, eventId: $eventId, serviceIds: $serviceIds, serviceNames: $serviceNames, serviceName: $serviceName, supplierName: $supplierName, customerName: $customerName, customerPhone: $customerPhone, notes: $notes, totalPrice: $totalPrice, quantity: $quantity, serviceDate: $serviceDate, serviceEndDate: $serviceEndDate, serviceSchedules: $serviceSchedules, status: $status, rejectionReason: $rejectionReason, cancellationReason: $cancellationReason, cancelledBy: $cancelledBy, createdAt: $createdAt, updatedAt: $updatedAt, confirmedAt: $confirmedAt, completedAt: $completedAt)';
   }
 
   @override
@@ -561,6 +586,8 @@ class _$OrderModelImpl extends _OrderModel {
                 other.serviceDate == serviceDate) &&
             (identical(other.serviceEndDate, serviceEndDate) ||
                 other.serviceEndDate == serviceEndDate) &&
+            const DeepCollectionEquality()
+                .equals(other._serviceSchedules, _serviceSchedules) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.rejectionReason, rejectionReason) ||
                 other.rejectionReason == rejectionReason) &&
@@ -598,6 +625,7 @@ class _$OrderModelImpl extends _OrderModel {
         quantity,
         serviceDate,
         serviceEndDate,
+        const DeepCollectionEquality().hash(_serviceSchedules),
         status,
         rejectionReason,
         cancellationReason,
@@ -642,6 +670,7 @@ abstract class _OrderModel extends OrderModel {
           final int? quantity,
           @TimestampConverter() final DateTime? serviceDate,
           @TimestampConverter() final DateTime? serviceEndDate,
+          final Map<String, dynamic> serviceSchedules,
           final OrderStatus status,
           final String? rejectionReason,
           final String? cancellationReason,
@@ -690,6 +719,8 @@ abstract class _OrderModel extends OrderModel {
   @override
   @TimestampConverter()
   DateTime? get serviceEndDate;
+  @override
+  Map<String, dynamic> get serviceSchedules;
   @override
   OrderStatus get status;
   @override

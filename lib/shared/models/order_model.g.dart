@@ -31,6 +31,8 @@ _$OrderModelImpl _$$OrderModelImplFromJson(Map<String, dynamic> json) =>
       serviceDate: const TimestampConverter().fromJson(json['serviceDate']),
       serviceEndDate:
           const TimestampConverter().fromJson(json['serviceEndDate']),
+      serviceSchedules:
+          json['serviceSchedules'] as Map<String, dynamic>? ?? const {},
       status: $enumDecodeNullable(_$OrderStatusEnumMap, json['status']) ??
           OrderStatus.pending,
       rejectionReason: json['rejectionReason'] as String?,
@@ -64,6 +66,7 @@ Map<String, dynamic> _$$OrderModelImplToJson(_$OrderModelImpl instance) =>
           instance.serviceDate, const TimestampConverter().toJson),
       'serviceEndDate': _$JsonConverterToJson<dynamic, DateTime>(
           instance.serviceEndDate, const TimestampConverter().toJson),
+      'serviceSchedules': instance.serviceSchedules,
       'status': _$OrderStatusEnumMap[instance.status]!,
       'rejectionReason': instance.rejectionReason,
       'cancellationReason': instance.cancellationReason,

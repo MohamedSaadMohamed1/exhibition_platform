@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
-import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart';
 import '../../../../shared/models/supplier_model.dart';
@@ -180,21 +179,11 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
       );
     }
 
-    final crossAxisCount = context.isMobile
-        ? AppDimensions.gridColumnsMobile
-        : AppDimensions.gridColumnsTablet;
-
     return RefreshIndicator(
       onRefresh: () => ref.read(suppliersNotifierProvider.notifier).refresh(),
-      child: GridView.builder(
+      child: ListView.builder(
         controller: _scrollController,
         padding: EdgeInsets.all(AppDimensions.spacingLg.w),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: AppDimensions.gridSpacing,
-          mainAxisSpacing: AppDimensions.gridSpacing,
-          childAspectRatio: 0.85,
-        ),
         itemCount: state.suppliers.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == state.suppliers.length) {
@@ -285,69 +274,29 @@ class _SupplierCard extends StatelessWidget {
           children: [
             // Cover Image with Logo Overlay
             Stack(
+              clipBehavior: Clip.none,
               children: [
                 // Cover Image
-                Container(
+                SizedBox(
                   height: 180,
                   width: double.infinity,
-                  color: AppColors.grey800,
                   child: supplier.images.isNotEmpty
                       ? Image.network(
                           supplier.images.first,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(
-                              Icons.store,
-                              size: 48,
-                              color: AppColors.grey600,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: AppColors.grey800,
+                            child: const Center(
+                              child: Icon(Icons.store, size: 48, color: AppColors.grey600),
                             ),
                           ),
                         )
-                      : const Center(
-                          child: Icon(
-                            Icons.store,
-                            size: 48,
-                            color: AppColors.grey600,
+                      : Container(
+                          color: AppColors.grey800,
+                          child: const Center(
+                            child: Icon(Icons.store, size: 48, color: AppColors.grey600),
                           ),
                         ),
-                ),
-                // Logo Overlay
-                Positioned(
-                  left: 12,
-                  top: 12,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: supplier.images.length > 1
-                          ? Image.network(
-                              supplier.images[1],
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.store,
-                                color: AppColors.primary,
-                                size: 30,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.store,
-                              color: AppColors.primary,
-                              size: 30,
-                            ),
-                    ),
-                  ),
                 ),
                 // Verified Badge
                 if (supplier.isVerified)
@@ -355,27 +304,55 @@ class _SupplierCard extends StatelessWidget {
                     right: 12,
                     top: 12,
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.9),
+                        color: AppColors.success,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.verified,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.verified, color: Colors.white, size: 18),
                     ),
                   ),
+                // Logo overlapping bottom of image
+                Positioned(
+                  left: 16,
+                  bottom: -28,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: supplier.images.length > 1
+                          ? Image.network(
+                              supplier.images[1],
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const Icon(Icons.store, color: AppColors.primary, size: 30),
+                            )
+                          : const Icon(Icons.store, color: AppColors.primary, size: 30),
+                    ),
+                  ),
+                ),
               ],
             ),
+            // Spacing to account for overlapping logo
+            const SizedBox(height: 36),
             // Supplier Info
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name
                   Text(
                     supplier.name,
                     style: const TextStyle(
@@ -387,14 +364,9 @@ class _SupplierCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  // Rating and Category
                   Row(
                     children: [
-                      const Icon(
-                        Icons.star,
-                        color: Colors.amber,
-                        size: 18,
-                      ),
+                      const Icon(Icons.star, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         supplier.rating.toStringAsFixed(1),
@@ -406,46 +378,32 @@ class _SupplierCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '(${supplier.reviewCount})',
-                        style: const TextStyle(
-                          color: AppColors.textSecondaryDark,
-                          fontSize: 13,
-                        ),
+                        '(${supplier.reviewCount} reviews)',
+                        style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
                       ),
-                      if (supplier.category != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: const BoxDecoration(
-                            color: AppColors.grey600,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            supplier.category!,
-                            style: const TextStyle(
-                              color: AppColors.textSecondaryDark,
-                              fontSize: 13,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
-                  // Service Tags
-                  if (supplier.services.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: supplier.services.take(3).map((service) {
-                        return _ServiceTag(label: service);
-                      }).toList(),
+                  if (supplier.description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      supplier.description,
+                      style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (supplier.category != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.textSecondaryDark),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        supplier.category!,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                      ),
                     ),
                   ],
                 ],
